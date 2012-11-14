@@ -167,7 +167,7 @@ private:
 
   void selectSocket()
   {
-    m_timeout.tv_sec = 5;
+    m_timeout = {5, 0};
     m_read_fd_set = m_active_fd_set;
     if (select (FD_SETSIZE, &m_read_fd_set, NULL, NULL, &m_timeout) < 0)
     {
