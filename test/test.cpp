@@ -3,6 +3,7 @@
 #include "obstream.h"
 #include "serverstream.h"
 #include "clientstream.h"
+#include "safe_map.h"
 
 struct processor
 {
@@ -23,4 +24,6 @@ int main()
   alm::serverstream<processor> server(1100, p);
 
   alm::clientstream client;
+
+  alm::safe_map<int, int> map;
 }
