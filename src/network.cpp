@@ -33,7 +33,7 @@ unsigned int network::readHeader(int socketFD)
     throw read_header_exception();
   }
    
-  memcpy((void *)&messageTotalSize,(void *)headerBuf, HEADER_SIZE);
+  memcpy(&messageTotalSize, headerBuf, HEADER_SIZE);
 
   return messageTotalSize;
 }
@@ -80,7 +80,7 @@ void network::sendMessage(int socketFD, outmessage &msg)
   int totalSize = sizeof(int) + msg.size;
 
   unsigned char buffer[totalSize];
-  memcpy(buffer,(unsigned char*)&totalSize, sizeof(totalSize));
+  memcpy(buffer, &totalSize, sizeof(totalSize));
   memcpy(buffer + sizeof(totalSize), msg.data, msg.size);
  
   int remainingMessageSize = totalSize; 

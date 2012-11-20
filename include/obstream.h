@@ -33,18 +33,16 @@ private:
   template<typename T>
   void serialize(T &value)
   {
-    unsigned int size = sizeof(T);
-
-    if(m_size + size >= m_capacity)
-    {
-      resize();
-    }
-    
-    memcpy(m_buffer + m_size, (unsigned char*)&value, size);
-    m_size += size;
+    copyData(&value, sizeof(T));
   }
   
-  void serialize(std::string &field);
+  void serialize(std::string &value);
+
+  void serialize(int value);
+
+  void serialize(short value);
+
+  void copyData(void* source, unsigned int size);
 
   void resize();
 };

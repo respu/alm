@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include "ibstream.h"
 
 namespace alm
@@ -23,11 +24,11 @@ unsigned int ibstream::size()
   return m_size;
 }
   
-void ibstream::deserialize(std::string &field)
+void ibstream::deserialize(std::string &value)
 {
   while(currentByte() != '\0')
   {
-    field += currentByte();
+    value += currentByte();
     incCounter(1);
   }  
   incCounter(1);
@@ -45,6 +46,28 @@ void ibstream::incCounter(unsigned int size)
 unsigned char ibstream::currentByte()
 {
   return *(m_buffer + m_counter);
+}
+
+void ibstream::deserialize(int value)
+{
+  uint32_t networkValue = ntohl(value);
+  copyData(&networkValue, sizeof(networkValue));
+}
+
+void ibstream::deserialize(short value)
+{
+  uint16_t networkValue = ntohs(value);
+  copyData(&networkValue, sizeof(networkValue));
+}
+
+void ibstream::copyData(void* target, unsigned int size)
+{
+  if(m_counter + size > m_size)
+  {
+    throw out_of_bounds_exception();
+  }
+  memcpy(target, m_buffer + m_counter, size);
+  m_counter += size;
 }
 
 }

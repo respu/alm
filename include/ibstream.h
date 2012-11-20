@@ -33,18 +33,18 @@ private:
   template<typename T>
   void deserialize(T &value)
   {
-    unsigned int size = sizeof(value);
-    if(m_counter + size > m_size)
-    {
-      throw out_of_bounds_exception();
-    }
-    memcpy((unsigned char*)&value, m_buffer + m_counter, size);
-    m_counter += size;
+    copyData(&value, sizeof(value));
   }
   
-  void deserialize(std::string &field);
+  void deserialize(std::string &value);
+
+  void deserialize(int value);
+
+  void deserialize(short value);
   
   void incCounter(unsigned int size);
+
+  void copyData(void* target, unsigned int size);
   
   unsigned char currentByte();
 };
