@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string.h>
 #include <iostream>
+#include <sstream>
 #include "clientstream.h"
 #include "serverstream.h"
 #include "network.h"
@@ -61,7 +62,18 @@ struct processor
   }
 };
 
+void createTask(alm::clientstream &client)
+{
+  create_task task;
 
+  alm::obstream output;
+  task.serialize(output);
+      
+  alm::outmessage outmsg;
+  outmsg.data = (unsigned char*)output.data();
+  outmsg.size = output.size();
+  client.sendMessage(outmsg);
+}
 
 int main()
 {
@@ -75,26 +87,22 @@ int main()
   std::string line;
   while (std::getline(std::cin, line))
   {
-    if(line.compare("quit") == 0)
+    std::stringstream ss(line);
+    std::string command;
+    ss >> command;
+
+    if(command.compare("quit") == 0)
     {
       break;
     }
-    else if(line.compare("create") == 0)
+    else if(command.compare("create") == 0)
     {
-      create_task task;
-
-      alm::obstream output;
-      task.serialize(output);
-      
-      alm::outmessage outmsg;
-      outmsg.data = (unsigned char*)output.data();
-      outmsg.size = output.size();
-      client.sendMessage(outmsg);
+      createTask(client);
     }
-    else if(line.compare("stop") == 0)
+    else if(command.compare("stop") == 0)
     {
       stop_task task;
-      task.requestID = 1;
+      ss >> task.requestID;
 
       alm::obstream output;
       task.serialize(output);

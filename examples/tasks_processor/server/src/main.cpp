@@ -17,7 +17,9 @@ struct request
 {
   std::atomic<bool> running;
 
-  request():running(true){}
+  unsigned int ticket;
+
+  request(unsigned int t):running(true), ticket(t){}
 };
 
 class processor
@@ -26,15 +28,13 @@ public:
   alm::thread_pool pool;
   alm::safe_map<int, alm::clientstream*> clients;
   alm::safe_map<unsigned int, request*> requests;
-  alm::inmessage* msg;
 
-  processor():pool(2), msg(0){}
+  processor():pool(2){}
 
   ~processor()
   {
     clients.for_each([] (alm::clientstream* client)
       {
-        client->closeSocket();
         delete client;
       });
     requests.for_each([] (request* rqst)
@@ -58,12 +58,6 @@ public:
   {
     std::cout << "Closed client socket " << socketFD << std::endl;
 
-    try
-    {
-      clients.find(socketFD)->closeSocket();
-    }
-    catch(...){}
-
     clients.erase(socketFD, [](alm::clientstream* client)
       {
         delete client;
@@ -73,86 +67,94 @@ public:
   void recvMessage(int socketFD)
   {
      std::cout << "Received message" << std::endl;
-     // TODO: create inmessage on the stack
-     // Parse inmessage to create the corresponding task
-     // Submit CREATION tasks to the pool
-     // Execute STOP tasks from this thread
-     if(msg)
-     {
-       delete msg;
-     }
-     msg = new alm::inmessage();
+     
+     alm::inmessage msg;
 
-     alm::network::recvMessage(socketFD, *msg);
      // If the message is read from another thread, it generates
      // a segmentation fault.
-     pool.submit( [&, socketFD]
-        {
-          worker(socketFD, *msg);
-        });
+     alm::network::recvMessage(socketFD, msg);
+
+     processMessage(socketFD, msg);
   }
 
-  void worker(int socketFD, alm::inmessage &msg)
+  void processMessage(int socketFD, alm::inmessage &msg)
   {
-    std::cout << "threadID: " << std::this_thread::get_id() << " socketFD: " << socketFD << std::endl;
-    std::cout.write((const char*)msg.data, msg.size);
-    std::cout << std::endl;
-
     alm::ibstream input(msg.size);
     memcpy(input.data(),msg.data,msg.size);
     task_type type;
-    input >> type;
-    // TODO: move alm_client and alm_server to alm/examples/tasks_processor
-    // TODO: Command pattern
+    input >> type; 
     if(type == CREATE)
     {
-      static unsigned int ticket = 0;
-      {
-        std::stringstream ss;
-        ss << "Create new task ";
-        ss << ticket++;
-        std::string ack = ss.str();
-        alm::outmessage outmsg;
-        outmsg.data = (unsigned char*)ack.c_str();
-        outmsg.size = ack.length();
-        try
-        {
-          clients.find(socketFD)->sendMessage(outmsg);
-        }
-        catch(...){}
-      }
-
-      request* newrequest = new request();
-      requests.insert(ticket, newrequest);
-
-      static unsigned int progress = 0;
-      while(newrequest->running)
-      {
-        std::stringstream ss;
-        ss << "Progress: ";
-        ss << progress++;
-        std::string ack = ss.str();
-        alm::outmessage outmsg;
-        outmsg.data = (unsigned char*)ack.c_str();
-        outmsg.size = ack.length();  
-        try
-        {
-          clients.find(socketFD)->sendMessage(outmsg);
-        }
-        catch(...){}
-        sleep(3);
-      }
+      createRequest(socketFD, input);
     }
     else if(type == STOP)
     {
-      unsigned int requestID;
-      input >> requestID;
+      stopRequest(input);
+    }
+  }
 
+  void createRequest(int socketFD, alm::ibstream &input)
+  {
+      static unsigned int ticket = 0;
+      
+      request* newrequest = new request(ticket);
+      requests.insert(ticket, newrequest);
+
+      notifyClient(socketFD, ticket);
+
+      pool.submit([&, socketFD, newrequest]
+        {
+          worker(socketFD, *newrequest);
+        });
+      
+      ticket++;
+  }
+
+  void notifyClient(int socketFD, unsigned int ticket)
+  {
+     std::stringstream ss;
+     ss << "Create new task: " << ticket;
+     std::string ack = ss.str();
+     alm::outmessage outmsg;
+     outmsg.data = (unsigned char*)ack.c_str();
+     outmsg.size = ack.length();
+     try
+     {
+       clients.find(socketFD)->sendMessage(outmsg);
+     }
+     catch(...){} 
+  }
+
+  void stopRequest(alm::ibstream &input)
+  {
+    unsigned int requestID;
+    input >> requestID;
+
+    try
+    {
+      requests.find(requestID)->running = false;
+    }
+    catch(...){}
+  }
+
+  void worker(int socketFD, request &rqst)
+  {
+    std::cout << "threadID: " << std::this_thread::get_id() << std::endl;
+    unsigned int progress = 0;
+    while(rqst.running)
+    {
+      std::stringstream ss;
+      ss << "Task : " << rqst.ticket << " Progress: " << progress++;
+      std::string ack = ss.str();
+      alm::outmessage outmsg;
+      outmsg.data = (unsigned char*)ack.c_str();
+      outmsg.size = ack.length();  
       try
       {
-        requests.find(requestID)->running = false;
+        clients.find(socketFD)->sendMessage(outmsg);
       }
-      catch(...){} 
+      catch(...){}
+      sleep(3);
     }
   }
 };
