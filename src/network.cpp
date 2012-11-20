@@ -79,11 +79,34 @@ void network::sendMessage(int socketFD, outmessage &msg)
 {
   int totalSize = sizeof(int) + msg.size;
 
-  char buffer[totalSize];
-  memcpy(buffer,(char*)&totalSize, sizeof(totalSize));
+  unsigned char buffer[totalSize];
+  memcpy(buffer,(unsigned char*)&totalSize, sizeof(totalSize));
   memcpy(buffer + sizeof(totalSize), msg.data, msg.size);
-  
-  send(socketFD, buffer, totalSize, 0); 
+ 
+  int remainingMessageSize = totalSize; 
+  unsigned char* position = buffer;
+
+  while(true)
+  {
+    int rc = send(socketFD, position, remainingMessageSize, 0);
+
+    if ( rc == 0 )
+    {
+      close(socketFD);
+      throw socket_closed_exception();
+    }
+    else if ( rc == -1 )
+    {
+      close(socketFD);
+      throw socket_error_exception();
+    }
+    else if( rc != remainingMessageSize)
+    {
+       remainingMessageSize = remainingMessageSize - rc;
+       position += rc;
+    }
+    else break;
+  }
 }
 
 }

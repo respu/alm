@@ -144,7 +144,7 @@ public:
     while(rqst.running)
     {
       std::stringstream ss;
-      ss << "Task : " << rqst.ticket << " Progress: " << progress++;
+      ss << "Task: " << rqst.ticket << " Progress: " << progress++;
       std::string ack = ss.str();
       alm::outmessage outmsg;
       outmsg.data = (unsigned char*)ack.c_str();

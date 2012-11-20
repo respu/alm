@@ -14,7 +14,7 @@ public:
 
   unsigned int size();
 
-  void read(char *buffer, unsigned int size);
+  void read(unsigned char *buffer, unsigned int size);
 
 private:
   std::ifstream m_file;

@@ -16,7 +16,7 @@ public:
 
   ~ibstream();
 
-  char* data();
+  unsigned char* data();
 
   unsigned int size();
 
@@ -24,7 +24,7 @@ public:
   friend ibstream& operator>> (ibstream &stream, T &field);
 
 private:
-  char* m_buffer;
+  unsigned char* m_buffer;
 
   unsigned int m_size;
 
@@ -38,7 +38,7 @@ private:
     {
       throw out_of_bounds_exception();
     }
-    memcpy((char*)&value, m_buffer + m_counter, size);
+    memcpy((unsigned char*)&value, m_buffer + m_counter, size);
     m_counter += size;
   }
   
@@ -46,7 +46,7 @@ private:
   
   void incCounter(unsigned int size);
   
-  char currentByte();
+  unsigned char currentByte();
 };
 
 template<typename T>

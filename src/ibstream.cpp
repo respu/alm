@@ -4,7 +4,7 @@ namespace alm
 {
 
 ibstream::ibstream(unsigned int size)
-  : m_buffer(new char[size]), m_size(size), m_counter(0)
+  : m_buffer(new unsigned char[size]), m_size(size), m_counter(0)
 {
 }
 
@@ -13,7 +13,7 @@ ibstream::~ibstream()
   delete[] m_buffer;
 }
 
-char* ibstream::data()
+unsigned char* ibstream::data()
 {
   return m_buffer;
 }
@@ -42,7 +42,7 @@ void ibstream::incCounter(unsigned int size)
   m_counter += size;
 }
 
-char ibstream::currentByte()
+unsigned char ibstream::currentByte()
 {
   return *(m_buffer + m_counter);
 }

@@ -70,7 +70,7 @@ void createTask(alm::clientstream &client)
   task.serialize(output);
       
   alm::outmessage outmsg;
-  outmsg.data = (unsigned char*)output.data();
+  outmsg.data = output.data();
   outmsg.size = output.size();
   client.sendMessage(outmsg);
 }
@@ -108,7 +108,7 @@ int main()
       task.serialize(output);
       
       alm::outmessage outmsg;
-      outmsg.data = (unsigned char*)output.data();
+      outmsg.data = output.data();
       outmsg.size = output.size();
       client.sendMessage(outmsg); 
     }

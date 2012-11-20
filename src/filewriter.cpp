@@ -10,7 +10,7 @@ alm::filewriter::~filewriter()
   m_file.close();
 }
 
-void alm::filewriter::write(const char* buffer, int size)
+void alm::filewriter::write(unsigned char* buffer, int size)
 {
-  m_file.write(buffer, size); 
+  m_file.write((const char*)buffer, size); 
 }

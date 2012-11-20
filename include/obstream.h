@@ -14,7 +14,7 @@ public:
 
   ~obstream();
 
-  char* data();
+  unsigned char* data();
 
   unsigned int size();
 
@@ -24,7 +24,7 @@ public:
 private:
   static const unsigned int DEFAULT_CAPACITY;
 
-  char* m_buffer;
+  unsigned char* m_buffer;
 
   unsigned int m_capacity;
 
@@ -40,7 +40,7 @@ private:
       resize();
     }
     
-    memcpy(m_buffer + m_size, (char*)&value, size);
+    memcpy(m_buffer + m_size, (unsigned char*)&value, size);
     m_size += size;
   }
   

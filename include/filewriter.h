@@ -14,7 +14,7 @@ public:
   
   ~filewriter();
 
-  void write(const char* buffer, int size);
+  void write(unsigned char* buffer, int size);
 
 private:
   std::ofstream m_file;

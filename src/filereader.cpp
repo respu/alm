@@ -19,9 +19,9 @@ filereader::~filereader()
   m_file.close();
 }
 
-void filereader::read(char *buffer, unsigned int size)
+void filereader::read(unsigned char *buffer, unsigned int size)
 {
-  m_file.read(buffer, size);
+  m_file.read((char*)buffer, size);
 }
 
 unsigned int filereader::size()
