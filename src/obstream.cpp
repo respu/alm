@@ -32,18 +32,6 @@ void obstream::serialize(std::string &value)
   copyData((void*)tmp.c_str(), size);
 }
 
-void obstream::serialize(int value)
-{
-  uint32_t networkValue = htonl(value);
-  copyData(&networkValue, sizeof(networkValue)); 
-}
-
-void obstream::serialize(short value)
-{
-  uint16_t networkValue = htons(value);
-  copyData(&networkValue, sizeof(networkValue));
-}
-
 void obstream::copyData(void* source, unsigned int size)
 {
   if(m_size + size >= m_capacity)

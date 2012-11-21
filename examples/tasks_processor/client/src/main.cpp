@@ -2,6 +2,7 @@
 #include <string.h>
 #include <iostream>
 #include <sstream>
+#include <arpa/inet.h>
 #include "clientstream.h"
 #include "serverstream.h"
 #include "network.h"
@@ -22,7 +23,8 @@ struct create_task : base_task
 
   void serialize(alm::obstream &output)
   {
-    output << type;
+    uint32_t networkType = htonl(type);
+    output << networkType;
   }
 };
 
@@ -34,7 +36,10 @@ struct stop_task : base_task
 
   void serialize(alm::obstream &output)
   {
-    output << type << requestID;
+    uint32_t networkType = htonl(type);
+    uint32_t networkRequestID = htonl(requestID);
+
+    output << networkType << networkRequestID;
   }
 };
 

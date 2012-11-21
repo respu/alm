@@ -37,11 +37,7 @@ private:
   }
   
   void deserialize(std::string &value);
-
-  void deserialize(int value);
-
-  void deserialize(short value);
-  
+ 
   void incCounter(unsigned int size);
 
   void copyData(void* target, unsigned int size);

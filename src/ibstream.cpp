@@ -1,4 +1,3 @@
-#include <arpa/inet.h>
 #include "ibstream.h"
 
 namespace alm
@@ -46,18 +45,6 @@ void ibstream::incCounter(unsigned int size)
 unsigned char ibstream::currentByte()
 {
   return *(m_buffer + m_counter);
-}
-
-void ibstream::deserialize(int value)
-{
-  uint32_t networkValue = ntohl(value);
-  copyData(&networkValue, sizeof(networkValue));
-}
-
-void ibstream::deserialize(short value)
-{
-  uint16_t networkValue = ntohs(value);
-  copyData(&networkValue, sizeof(networkValue));
 }
 
 void ibstream::copyData(void* target, unsigned int size)

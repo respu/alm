@@ -4,6 +4,7 @@
 #include <map>
 #include <sstream>
 #include <atomic>
+#include <arpa/inet.h>
 #include "clientstream.h"
 #include "serverstream.h"
 #include "network.h"
@@ -81,8 +82,9 @@ public:
   {
     alm::ibstream input(msg.size);
     memcpy(input.data(),msg.data,msg.size);
-    task_type type;
-    input >> type; 
+    uint32_t networkType;
+    input >> networkType; 
+    task_type type = (task_type)ntohl(networkType);
     if(type == CREATE)
     {
       createRequest(socketFD, input);
@@ -127,12 +129,12 @@ public:
 
   void stopRequest(alm::ibstream &input)
   {
-    unsigned int requestID;
+    uint32_t requestID;
     input >> requestID;
-
+    unsigned int id = ntohl(requestID);
     try
     {
-      requests.find(requestID)->running = false;
+      requests.find(id)->running = false;
     }
     catch(...){}
   }

@@ -38,10 +38,6 @@ private:
   
   void serialize(std::string &value);
 
-  void serialize(int value);
-
-  void serialize(short value);
-
   void copyData(void* source, unsigned int size);
 
   void resize();
