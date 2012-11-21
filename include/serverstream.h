@@ -2,6 +2,7 @@
 #define __ALM__SERVER_STREAM__
 
 #include <arpa/inet.h>
+#include <sys/poll.h>
 #include <unistd.h>
 #include <string.h>
 #include <thread>
@@ -19,7 +20,7 @@ class serverstream
 public:
   serverstream(unsigned short port, Processor &processor)
     : m_running(false), m_port(port), m_processor(processor),
-      m_socketFD(0), m_maxFD(0)
+      m_listenFD(0), m_timeout(5000), m_numSockets(0)
   {
     memset(&m_sockAddr, 0, sizeof(m_sockAddr));
   }
@@ -61,15 +62,13 @@ private:
 
   sockaddr_in m_sockAddr;
 
-  int m_socketFD;
+  int m_listenFD;
 
-  int m_maxFD;
+  int m_timeout;
 
-  timeval m_timeout;
+  struct pollfd m_sockets[200];
 
-  fd_set m_active_fd_set;
-
-  fd_set m_read_fd_set;
+  int m_numSockets;
 
   std::thread m_thread;
 
@@ -80,16 +79,21 @@ private:
     bindSocket();
 
     listenSocket();
+  }
 
-    initSockets();
+  void addSocket(int newSocketFD)
+  {
+    m_sockets[m_numSockets].fd = newSocketFD;
+    m_sockets[m_numSockets].events = POLLIN;
+    m_numSockets++;
   }
 
   void createSocket()
   {
-    m_socketFD = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    m_maxFD = m_socketFD;
+    m_listenFD = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    addSocket(m_listenFD);
 
-    if(-1 == m_socketFD)
+    if(-1 == m_listenFD)
     {
       throw create_socket_exception(); 
     }
@@ -101,26 +105,20 @@ private:
 
   void bindSocket()
   {
-    if(-1 == bind(m_socketFD,(sockaddr*)&m_sockAddr, sizeof(m_sockAddr)))
+    if(-1 == bind(m_listenFD,(sockaddr*)&m_sockAddr, sizeof(m_sockAddr)))
     {
-      close(m_socketFD);
+      close(m_listenFD);
       throw bind_socket_exception();
     }
   }
 
   void listenSocket()
   {
-    if(-1 == listen(m_socketFD, 10))
+    if(-1 == listen(m_listenFD, 10))
     {
-      close(m_socketFD);
+      close(m_listenFD);
       throw listen_socket_exception();
     }
-  }
-
-  void initSockets()
-  {
-    FD_ZERO(&m_active_fd_set);
-    FD_SET(m_socketFD, &m_active_fd_set);
   }
 
   void run()
@@ -136,76 +134,101 @@ private:
   void process()
   {
     /* Block until input arrives on one or more active sockets. */
-    selectSocket();
-
-    /* Service all the sockets with input pending. */
-    for (int fd = 0; fd < m_maxFD + 1; ++fd)
+    if(pollSocket())
     {
-      if (FD_ISSET (fd, &m_read_fd_set))
+      /* Service all the sockets with input pending. */
+      int currentSockets = m_numSockets;
+      for (int i = 0; i < currentSockets; ++i)
       {
-        if (fd == m_socketFD)
+        if(m_sockets[i].revents == POLLIN)
         {
-          /* Connection request on original socket. */
-          addClient(); 
-        }
-        else
-        {
-          /* Data arriving on an already-connected socket. */
-          try
+          if (m_sockets[i].fd == m_listenFD)
           {
-            m_processor.recvMessage(fd);
+            /* Connection request on original socket. */
+            newClient(); 
           }
-          catch(socket_closed_exception &e)
+          else
           {
-            /* Remove the closed socket from the set */
-            removeClient(fd);
+            /* Data arriving on an already-connected socket. */
+            newMessage(i); 
           }
         }
       }
     }
   }
 
-  void selectSocket()
+  bool pollSocket()
   {
-    m_timeout = {5, 0};
-    m_read_fd_set = m_active_fd_set;
-    if (select (FD_SETSIZE, &m_read_fd_set, NULL, NULL, &m_timeout) < 0)
+    bool result = false;
+
+    int rc = poll(m_sockets, m_numSockets, m_timeout);
+    if (rc < 0)
     {
-      throw select_socket_exception();
+      throw poll_socket_exception();
+    }
+    else if(rc > 0)
+    {
+      result = true;
+    }
+
+    return result;
+  }
+
+  void newClient()
+  {
+    sockaddr_in clientAddr;
+    unsigned int size = sizeof(clientAddr);
+    int newSocketFD = accept(m_listenFD, (sockaddr*)&clientAddr, &size);
+    if (newSocketFD < 0)
+    {
+      throw accept_socket_exception();
+    }
+
+    addSocket(newSocketFD);
+
+    m_processor.addClient(newSocketFD, clientAddr); 
+  }
+
+  void newMessage(int indexFD)
+  {
+    try
+    {
+      m_processor.recvMessage(m_sockets[indexFD].fd);
+    }
+    catch(socket_closed_exception &e)
+    {
+      /* Remove the closed socket from the set */
+      removeClient(indexFD);
+    }
+  }
+
+  void removeClient(int indexFD)
+  {
+    m_processor.removeClient(m_sockets[indexFD].fd);
+
+    m_sockets[indexFD].fd = -1;
+    for (int i = 0; i < m_numSockets; i++)
+    {
+      if (m_sockets[i].fd == -1)
+      {
+        for(int j = i; j < m_numSockets; j++)
+        {
+          m_sockets[j].fd = m_sockets[j+1].fd;
+        }
+        m_numSockets--;
+      }
     }
   }
 
   void closeSockets()
   {
-    for (int fd = 0; fd < m_maxFD + 1; ++fd)
+    for(int i = 0; i < m_numSockets; i++)
     {
-      if (FD_ISSET (fd, &m_read_fd_set))
+      if(m_sockets[i].fd >= 0)
       {
-        close(fd);
+        close(m_sockets[i].fd);
       }
     }
-  }
-
-  void addClient()
-  {
-    sockaddr_in clientAddr;
-    unsigned int size = sizeof(clientAddr);
-    int newSocket = accept(m_socketFD, (sockaddr*)&clientAddr, &size);
-    if (newSocket < 0)
-    {
-      throw accept_socket_exception();
-    }
-    FD_SET (newSocket, &m_active_fd_set);
-    m_maxFD = (m_maxFD < newSocket) ? newSocket : m_maxFD;
-
-    m_processor.addClient(newSocket, clientAddr); 
-  }
-
-  void removeClient(int socketFD)
-  {
-    FD_CLR(socketFD, &m_active_fd_set);
-
-    m_processor.removeClient(socketFD);
   }
 };
 

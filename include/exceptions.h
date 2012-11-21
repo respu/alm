@@ -10,7 +10,7 @@ struct create_socket_exception   : std::exception {};
 struct bind_socket_exception     : std::exception {};
 struct listen_socket_exception   : std::exception {};
 struct accept_socket_exception   : std::exception {};
-struct select_socket_exception   : std::exception {};
+struct poll_socket_exception   : std::exception {};
 struct socket_closed_exception   : std::exception {};
 struct socket_error_exception    : std::exception {};
 struct read_header_exception  : std::exception {};
