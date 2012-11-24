@@ -8,6 +8,7 @@
 #include "network.h"
 #include "obstream.h"
 #include "ibstream.h"
+#include "endianess.h"
 
 enum task_type { CREATE, PAUSE, RESUME, STOP};
 
@@ -21,10 +22,10 @@ struct create_task : base_task
 {
   create_task():base_task(CREATE){}
 
-  void serialize(alm::obstream &output)
+  void serialize(alm::obstream<alm::big> &output)
   {
-    uint32_t networkType = htonl(type);
-    output << networkType;
+    int ntype = (int)type;
+    output << ntype;
   }
 };
 
@@ -34,12 +35,11 @@ struct stop_task : base_task
 
   stop_task():base_task(STOP){}
 
-  void serialize(alm::obstream &output)
+  void serialize(alm::obstream<alm::big> &output)
   {
-    uint32_t networkType = htonl(type);
-    uint32_t networkRequestID = htonl(requestID);
-
-    output << networkType << networkRequestID;
+    int ntype = (int)type;
+    int nrequestID = (int)requestID;
+    output << ntype << nrequestID;
   }
 };
 
@@ -71,9 +71,23 @@ void createTask(alm::clientstream &client)
 {
   create_task task;
 
-  alm::obstream output;
+  alm::obstream<alm::big> output;
   task.serialize(output);
       
+  alm::outmessage outmsg;
+  outmsg.data = output.data();
+  outmsg.size = output.size();
+  client.sendMessage(outmsg);
+}
+
+void stopTask(alm::clientstream &client, int requestID)
+{
+  stop_task task;
+  task.requestID = requestID;
+
+  alm::obstream<alm::big> output;
+  task.serialize(output);
+     
   alm::outmessage outmsg;
   outmsg.data = output.data();
   outmsg.size = output.size();
@@ -106,16 +120,9 @@ int main()
     }
     else if(command.compare("stop") == 0)
     {
-      stop_task task;
-      ss >> task.requestID;
-
-      alm::obstream output;
-      task.serialize(output);
-      
-      alm::outmessage outmsg;
-      outmsg.data = output.data();
-      outmsg.size = output.size();
-      client.sendMessage(outmsg); 
+      int requestID;
+      ss >> requestID;
+      stopTask(client, requestID);
     }
   }
 

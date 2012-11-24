@@ -13,17 +13,17 @@ CFLAGS = -Wall -g -std=c++0x
 
 # define any directories containing header files other than /usr/include
 #
-INCLUDES = -I../include
+INCLUDES = -Iinclude -I$(ALM_PATH)/include
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
 #   their path using -Lpath, something like:
-LFLAGS = -L../
+LFLAGS = -L$(ALM_PATH)
 
 # define any libraries to link into executable:
 #   if I want to link in libraries (libx.so or libx.a) I use the -llibname 
 #   option, something like (this will link in libmylib.so and libm.so:
-LIBS = -lalm
+LIBS = -lalm -lpthread
 
 # define the C source files
 SRCS = $(wildcard *.cpp)
