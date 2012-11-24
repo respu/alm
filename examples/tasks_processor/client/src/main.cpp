@@ -8,7 +8,6 @@
 #include "network.h"
 #include "obstream.h"
 #include "ibstream.h"
-#include "endianess.h"
 
 enum task_type { CREATE, PAUSE, RESUME, STOP};
 
@@ -22,10 +21,10 @@ struct create_task : base_task
 {
   create_task():base_task(CREATE){}
 
-  void serialize(alm::obstream<alm::big> &output)
+  void serialize(alm::obstream &output)
   {
-    int ntype = (int)type;
-    output << ntype;
+    int32_t networkType = htonl(type);
+    output << networkType;
   }
 };
 
@@ -35,11 +34,12 @@ struct stop_task : base_task
 
   stop_task():base_task(STOP){}
 
-  void serialize(alm::obstream<alm::big> &output)
+  void serialize(alm::obstream &output)
   {
-    int ntype = (int)type;
-    int nrequestID = (int)requestID;
-    output << ntype << nrequestID;
+    int32_t networkType = htonl(type);
+    uint32_t networkRequestID = htonl(requestID);
+
+    output << networkType << networkRequestID;
   }
 };
 
@@ -71,7 +71,7 @@ void createTask(alm::clientstream &client)
 {
   create_task task;
 
-  alm::obstream<alm::big> output;
+  alm::obstream output;
   task.serialize(output);
       
   alm::outmessage outmsg;
@@ -85,7 +85,7 @@ void stopTask(alm::clientstream &client, int requestID)
   stop_task task;
   task.requestID = requestID;
 
-  alm::obstream<alm::big> output;
+  alm::obstream output;
   task.serialize(output);
      
   alm::outmessage outmsg;

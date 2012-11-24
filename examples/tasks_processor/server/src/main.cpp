@@ -11,7 +11,6 @@
 #include "thread_pool.h"
 #include "safe_map.h"
 #include "ibstream.h"
-#include "endianess.h"
 
 enum task_type { CREATE, PAUSE, RESUME, STOP};
 
@@ -81,11 +80,11 @@ public:
 
   void processMessage(int socketFD, alm::inmessage &msg)
   {
-    alm::ibstream<alm::little> input(msg.size);
+    alm::ibstream input(msg.size);
     memcpy(input.data(),msg.data,msg.size);
-    int networkType;
+    int32_t networkType;
     input >> networkType; 
-    task_type type = (task_type)networkType;
+    task_type type = (task_type)ntohl(networkType);
     if(type == CREATE)
     {
       createRequest(socketFD);
@@ -128,10 +127,11 @@ public:
      catch(...){} 
   }
 
-  void stopRequest(alm::ibstream<alm::little> &input)
+  void stopRequest(alm::ibstream &input)
   {
-    unsigned int id;
-    input >> id;
+    int32_t requestID;
+    input >> requestID;
+    unsigned int id = ntohl(requestID);
     try
     {
       requests.find(id)->running = false;
