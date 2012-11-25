@@ -15,7 +15,7 @@ unsigned int network::readHeader(int socketFD)
 
   unsigned char headerBuf[HEADER_SIZE];
 
-  int rc = recv(socketFD, headerBuf, HEADER_SIZE , 0);
+  int rc = read(socketFD, headerBuf, HEADER_SIZE);
 
   if ( rc == 0 )
   {
@@ -48,7 +48,7 @@ void network::readBody(int socketFD, inmessage &msg, unsigned int totalSize)
 
   while(true)
   {
-    int rc = recv(socketFD, position, remainingMessageSize, 0);
+    int rc = read(socketFD, position, remainingMessageSize);
 
     if ( rc == 0 )
     {
@@ -88,7 +88,7 @@ void network::sendMessage(int socketFD, outmessage &msg)
 
   while(true)
   {
-    int rc = send(socketFD, position, remainingMessageSize, 0);
+    int rc = write(socketFD, position, remainingMessageSize);
 
     if ( rc == 0 )
     {
