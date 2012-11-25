@@ -26,7 +26,7 @@ public:
   }
 
 private:
-  static const unsigned int DEFAULT_CAPACITY;
+  static const unsigned int DEFAULT_CAPACITY = 128;
 
   unsigned char* m_buffer;
 

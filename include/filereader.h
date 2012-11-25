@@ -1,6 +1,8 @@
 #ifndef __ALM__FILE_READER__
 #define __ALM__FILE_READER__
 
+#include <fstream>
+
 namespace alm
 {
 

@@ -67,7 +67,7 @@ public:
   }
 
 private:
-  static const unsigned int DEFAULT_CAPACITY;
+  static const unsigned int DEFAULT_CAPACITY = 10;
 
   T* m_buffer;
 
@@ -89,9 +89,6 @@ private:
     m_front = 0;
   }
 };
-
-template<typename T>
-const unsigned int queue<T>::DEFAULT_CAPACITY = 10;
 
 }
 

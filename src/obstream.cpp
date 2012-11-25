@@ -53,6 +53,4 @@ void obstream::resize()
   m_buffer = new_buffer;
 }
 
-const unsigned int obstream::DEFAULT_CAPACITY = 128;
-
 }

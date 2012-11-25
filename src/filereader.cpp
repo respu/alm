@@ -1,4 +1,5 @@
 #include <fstream>
+#include "exceptions.h"
 #include "filereader.h"
 
 namespace alm
@@ -7,6 +8,10 @@ namespace alm
 filereader::filereader(const char* fileName)
 {
   m_file.open(fileName, std::ios::in | std::ios::binary);
+  if(!m_file.good())
+  {
+    throw file_not_found_exception();
+  }
 
   m_file.seekg (0, std::ios::end);
   m_size = m_file.tellg();

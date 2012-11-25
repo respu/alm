@@ -20,7 +20,7 @@ class serverstream
 public:
   serverstream(unsigned short port, Processor &processor)
     : m_running(false), m_port(port), m_processor(processor),
-      m_listenFD(0), m_timeout(5000), m_numSockets(0)
+      m_listenFD(0), m_numSockets(0)
   {
     memset(&m_sockAddr, 0, sizeof(m_sockAddr));
   }
@@ -54,6 +54,10 @@ public:
   }
 
 private:
+  static const int MAX_SOCKETS = 200;
+
+  static const int TIMEOUT = 5000;
+
   std::atomic<bool> m_running;
 
   unsigned short m_port;
@@ -64,9 +68,7 @@ private:
 
   int m_listenFD;
 
-  int m_timeout;
-
-  struct pollfd m_sockets[200];
+  struct pollfd m_sockets[MAX_SOCKETS];
 
   int m_numSockets;
 
@@ -161,7 +163,7 @@ private:
   {
     bool result = false;
 
-    int rc = poll(m_sockets, m_numSockets, m_timeout);
+    int rc = poll(m_sockets, m_numSockets, TIMEOUT);
     if (rc < 0)
     {
       throw poll_socket_exception();
