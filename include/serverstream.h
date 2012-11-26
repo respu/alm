@@ -197,7 +197,7 @@ private:
     {
       m_processor.recvMessage(m_sockets[indexFD].fd);
     }
-    catch(socket_closed_exception &e)
+    catch(...)
     {
       /* Remove the closed socket from the set */
       removeClient(indexFD);
@@ -207,6 +207,8 @@ private:
   void removeClient(int indexFD)
   {
     m_processor.removeClient(m_sockets[indexFD].fd);
+
+    close(m_sockets[indexFD].fd);
 
     m_sockets[indexFD].fd = -1;
     for (int i = 0; i < m_numSockets; i++)

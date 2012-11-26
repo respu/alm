@@ -19,17 +19,14 @@ unsigned int network::readHeader(int socketFD)
 
   if ( rc == 0 )
   {
-    close(socketFD);
     throw socket_closed_exception();
   }
   else if ( rc == -1 )
   {
-    close(socketFD);
     throw socket_error_exception();
   }
   else if ( rc != HEADER_SIZE )
   {
-    close(socketFD);
     throw read_header_exception();
   }
    
@@ -52,12 +49,10 @@ void network::readBody(int socketFD, inmessage &msg, unsigned int totalSize)
 
     if ( rc == 0 )
     {
-      close(socketFD);
       throw socket_closed_exception();
     }
     else if ( rc == -1 )
     {
-      close(socketFD);
       throw socket_error_exception();
     }
     else if( rc != remainingMessageSize)
@@ -92,12 +87,10 @@ void network::sendMessage(int socketFD, outmessage &msg)
 
     if ( rc == 0 )
     {
-      close(socketFD);
       throw socket_closed_exception();
     }
     else if ( rc == -1 )
     {
-      close(socketFD);
       throw socket_error_exception();
     }
     else if( rc != remainingMessageSize)

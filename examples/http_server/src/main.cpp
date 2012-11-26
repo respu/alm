@@ -41,12 +41,10 @@ public:
     int rc =read(socketFD, input, INPUT_SIZE);
     if ( rc == 0 )
     {
-      close(socketFD);
       throw alm::socket_closed_exception();
     }
     else if ( rc == -1 )
     {
-      close(socketFD);
       throw alm::socket_error_exception();
     }
     else if( rc > 0)
