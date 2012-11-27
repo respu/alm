@@ -197,7 +197,7 @@ private:
     {
       m_processor.recvMessage(m_sockets[indexFD].fd);
     }
-    catch(...)
+    catch(socket_closed_exception &e)
     {
       /* Remove the closed socket from the set */
       removeClient(indexFD);
