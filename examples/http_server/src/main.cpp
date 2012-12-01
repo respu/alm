@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <string.h>
 #include "thread_pool.h"
@@ -12,8 +13,22 @@ public:
 
   ~processor() { }
 
-  void request(int socketFD, const std::string &url)
+  void doGet(int socketFD, const std::string &url)
   {
+    std::cout << "URL: " << url << std::endl;
+
+    std::string fileName = base + url;
+    pool.submit([&, socketFD, fileName]
+      {
+        alm::http_processor<processor>::responseFile(socketFD, fileName);
+      });
+  }
+
+  void doPost(int socketFD, const std::string &url, const std::string &message)
+  {
+    std::cout << "URL: " << url << std::endl;
+    std::cout << "Message: " << message << std::endl;
+
     std::string fileName = base + url;
     pool.submit([&, socketFD, fileName]
       {

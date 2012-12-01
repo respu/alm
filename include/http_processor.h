@@ -24,8 +24,6 @@ public:
 
   void recvMessage(int socketFD)
   {
-    // If the message is read from another thread, it generates
-    // a segmentation fault.
     int rc =read(socketFD, m_input, INPUT_SIZE);
     if ( rc == 0 )
     {
@@ -39,7 +37,6 @@ public:
     {
       std::stringstream ss;
       ss.write(m_input, rc);
-
       request(socketFD, ss);
     }
   }
@@ -70,25 +67,32 @@ private:
   void request(int socketFD, std::stringstream &ss)
   {
     std::string cmd;
-    ss >> cmd;
+    std::string url;
+    ss >> cmd >> url;
+
+    if(allowed(socketFD, url))
+    {
+      processRequest(socketFD, cmd, url, ss);
+    }
+  }
+
+  void processRequest(int socketFD, std::string &cmd,
+                      std::string &url, std::stringstream &ss)
+  {
     if(cmd.compare("GET") == 0)
     {
-      std::string url;
-      ss >> url;
-
-      processRequest(socketFD, url);
+      m_processor.doGet(socketFD, url);
+    }
+    else if(cmd.compare("POST") == 0)
+    {
+      std::string tmp = ss.str();
+      std::string message = 
+        tmp.substr(tmp.find_last_of("\n") + 1, tmp.length());
+      m_processor.doPost(socketFD, url, message);
     }
     else
     {
       forbidden(socketFD);
-    }
-  }
-
-  void processRequest(int socketFD, const std::string &url)
-  {
-    if(allowed(socketFD, url))
-    {
-      m_processor.request(socketFD, url);
     }
   }
 
