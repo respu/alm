@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <sstream>
 #include "thread_pool.h"
 #include "ibstream.h"
 #include "obstream.h"
@@ -14,7 +15,7 @@ using namespace std;
 
 #define TESTA   "abc"
 #define TESTB   "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
-
+#define TESTC   "k/UT5mNkfV1ztuqE4Vshhg==258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 struct processor
 {
@@ -32,7 +33,7 @@ void f1()
   alm::obstream output;
 
   processor p;
-  alm::serverstream<processor> server(1100, p);
+  alm::serverstream<processor> server;
 
   alm::clientstream client;
 
@@ -41,7 +42,7 @@ void f1()
 
 void DisplayMessageDigest(unsigned *message_digest)
 {
-    ios::fmtflags   flags;
+    ios::fmtflags   flags, flags2;
 
     cout << '\t';
 
@@ -56,40 +57,46 @@ void DisplayMessageDigest(unsigned *message_digest)
     cout << endl;
 
     cout.setf(flags);
+
+    std::stringstream ss;
+    flags2 = ss.setf(ios::hex|ios::uppercase,ios::basefield);
+    ss.setf(ios::uppercase);
+    for(int i = 0; i < 5 ; i++)
+    {
+        ss << message_digest[i];
+    } 
+    ss.setf(flags2);
+
+    cout << "ss: " << ss.str() << std::endl;
 }
 
 void testSHA1()
 {
 
   {
-    unsigned    message_digest[5];
-
     /*
      *  Perform test A
      */
     cout << endl << "Test A: 'abc'" << endl;
 
-    alm::sha1::encode(TESTA, message_digest);
-
-        DisplayMessageDigest(message_digest);
-        cout << "Should match:" << endl;
-        cout << '\t' << "A9993E36 4706816A BA3E2571 7850C26C 9CD0D89D" << endl;
+    std::string input(TESTA);
+    std::string result = alm::sha1::hexDigest(input);
+    std::cout << "result: " << result << std::endl;
+    cout << "Should match:" << endl;
+    cout << '\t' << "A9993E36 4706816A BA3E2571 7850C26C 9CD0D89D" << endl;
   }
 
   {
-    unsigned    message_digest[5];
-
-
     /*
      *  Perform test B
      */
     cout << endl << "Test B: " << TESTB << endl;
 
-    alm::sha1::encode(TESTB, message_digest);
-
-        DisplayMessageDigest(message_digest);
-        cout << "Should match:" << endl;
-        cout << '\t' << "84983E44 1C3BD26E BAAE4AA1 F95129E5 E54670F1" << endl;
+    std::string input(TESTB);
+    std::string result = alm::sha1::hexDigest(input);
+    std::cout << "result: " << result << std::endl;
+    cout << "Should match:" << endl;
+    cout << '\t' << "84983E44 1C3BD26E BAAE4AA1 F95129E5 E54670F1" << endl;
   }
 }
 
@@ -138,5 +145,5 @@ int testBase64()
 
 int main()
 {
-  testBase64();
+  testSHA1();
 }

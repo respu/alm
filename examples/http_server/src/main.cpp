@@ -46,8 +46,8 @@ int main(void)
 {
   processor p("/home/alem/Workspace/web/");
   alm::http_processor<processor> http_p(p);
-  alm::serverstream<alm::http_processor<processor>> server(1100, http_p);
-  server.start();
+  alm::serverstream<alm::http_processor<processor>> server;
+  server.start(110, http_p, 5000);
 
   std::string line;
   while (std::getline(std::cin, line))

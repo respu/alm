@@ -1,6 +1,7 @@
 #ifndef __ALM__sha1__
 #define __ALM__sha1__
 
+#include <string>
 #include <exception>
 
 namespace alm
@@ -12,13 +13,19 @@ struct sha1_message_too_long_exception : std::exception {};
 class sha1
 {
 public:
-  static void encode(const char* message_array, unsigned* output);
+  static std::string digest(std::string &input);
+
+  static std::string hexDigest(std::string &input);
 
 private:
   static void input(const unsigned char *message_array,
                     unsigned length);
 
-  static void result(unsigned *message_digest_array);
+  static std::string result();
+
+  static std::string hexResult();
+
+  static void process(const char* message_array);
         
   static void processMessageBlock();
 

@@ -10,11 +10,11 @@
 namespace alm
 {
 
-template<typename Processor>
+template<typename processor>
 class http_processor
 {
 public:
-  http_processor(Processor &processor) : m_processor(processor) { }
+  http_processor(processor &proc) : m_processor(proc) { }
 
   ~http_processor() { }
 
@@ -58,7 +58,7 @@ public:
 private:
   static const int INPUT_SIZE = 8096;
 
-  Processor& m_processor;
+  processor& m_processor;
 
   char m_input[INPUT_SIZE];
 
@@ -159,8 +159,8 @@ private:
   }
 };
 
-template<typename Processor>
-std::map<std::string, std::string> http_processor<Processor>::m_extensions =
+template<typename processor>
+std::map<std::string, std::string> http_processor<processor>::m_extensions =
     {
     {"gif", "image/gif"},
     {"jpg", "image/jpg"},

@@ -164,8 +164,8 @@ public:
 int main(void)
 {
   processor p;
-  alm::serverstream<processor> server(1100, p);
-  server.start();
+  alm::serverstream<processor> server;
+  server.start(1100, p, 5000);
 
   std::string line;
   while (std::getline(std::cin, line))

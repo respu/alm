@@ -14,13 +14,13 @@
 namespace alm
 {
 
-template<typename Processor>
+template<typename processor>
 class serverstream
 {
 public:
-  serverstream(unsigned short port, Processor &processor)
-    : m_running(false), m_port(port), m_processor(processor),
-      m_listenFD(0), m_numSockets(0)
+  serverstream()
+    : m_running(false), m_port(0), m_processor(0), m_listenFD(0),
+      m_numSockets(0)
   {
     memset(&m_sockAddr, 0, sizeof(m_sockAddr));
   }
@@ -34,13 +34,17 @@ public:
     stop(); 
   }
 
-  void start()
+  void start(unsigned short port, processor &proc, unsigned int timeout)
   {
     m_running = true;
 
+    m_port = port;
+    m_processor = &proc;
+    m_timeout = timeout;
+
     init();
 
-    m_thread = std::thread(&serverstream<Processor>::run, this);
+    m_thread = std::thread(&serverstream<processor>::run, this);
   }
 
   void stop()
@@ -56,13 +60,13 @@ public:
 private:
   static const int MAX_SOCKETS = 200;
 
-  static const int TIMEOUT = 5000;
+  unsigned int m_timeout;
 
   std::atomic<bool> m_running;
 
   unsigned short m_port;
 
-  Processor& m_processor;
+  processor* m_processor;
 
   sockaddr_in m_sockAddr;
 
@@ -163,7 +167,7 @@ private:
   {
     bool result = false;
 
-    int rc = poll(m_sockets, m_numSockets, TIMEOUT);
+    int rc = poll(m_sockets, m_numSockets, m_timeout);
     if (rc < 0)
     {
       throw poll_socket_exception();
@@ -188,14 +192,14 @@ private:
 
     addSocket(newSocketFD);
 
-    m_processor.addClient(newSocketFD, clientAddr); 
+    m_processor->addClient(newSocketFD, clientAddr); 
   }
 
   void newMessage(int indexFD)
   {
     try
     {
-      m_processor.recvMessage(m_sockets[indexFD].fd);
+      m_processor->recvMessage(m_sockets[indexFD].fd);
     }
     catch(socket_closed_exception &e)
     {
@@ -206,7 +210,7 @@ private:
 
   void removeClient(int indexFD)
   {
-    m_processor.removeClient(m_sockets[indexFD].fd);
+    m_processor->removeClient(m_sockets[indexFD].fd);
 
     close(m_sockets[indexFD].fd);
 

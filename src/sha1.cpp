@@ -1,3 +1,6 @@
+#include <string.h>
+#include <string>
+#include <sstream>
 #include "sha1.h"
 
 namespace alm
@@ -30,16 +33,6 @@ m_lengthLow = 0;
 m_lengthHigh = 0;
 
 m_messageBlockIndex = 0;
-}
-
-void sha1::result(unsigned *message_digest_array)
-{
-    padMessage();
-
-    for(int i = 0; i < 5; i++)
-    {
-        message_digest_array[i] = H[i];
-    }
 }
 
 void sha1::input(const unsigned char *message_array,
@@ -75,7 +68,7 @@ void sha1::input(const unsigned char *message_array,
     }
 }
 
-void sha1::encode(const char* message_array, unsigned* output)
+void sha1::process(const char* message_array)
 {
     const unsigned char* p = (const unsigned char*)message_array;
 
@@ -86,8 +79,18 @@ void sha1::encode(const char* message_array, unsigned* output)
         input(p, 1);
         p++;
     }
+}
 
-    result(output);
+std::string sha1::digest(std::string &input)
+{
+  process(input.c_str());
+  return result();
+}
+
+std::string sha1::hexDigest(std::string &input)
+{
+  process(input.c_str());
+  return hexResult();
 }
 
 void sha1::processMessageBlock()
@@ -218,6 +221,31 @@ void sha1::padMessage()
 unsigned sha1::circularShift(int bits, unsigned word)
 {
     return ((word << bits) & 0xFFFFFFFF) | ((word & 0xFFFFFFFF) >> (32-bits));
+}
+
+std::string sha1::result()
+{
+    padMessage();
+
+    char buffer[20];
+    memcpy(buffer, H, sizeof(unsigned) * 5);
+    return std::string(buffer);
+}
+
+std::string sha1::hexResult()
+{
+    padMessage();
+
+    std::stringstream ss;
+    std::ios::fmtflags flags = 
+      ss.setf(std::ios::hex|std::ios::uppercase,std::ios::basefield);
+    ss.setf(std::ios::uppercase);
+    for(int i = 0; i < 5 ; i++)
+    {
+        ss << H[i];
+    } 
+    ss.setf(flags);
+    return ss.str();
 }
 
 }
