@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include "thread_pool.h"
 #include "ibstream.h"
 #include "obstream.h"
@@ -7,6 +8,7 @@
 #include "safe_map.h"
 #include "endianess.h"
 #include "sha1.h"
+#include "base64.h"
 
 using namespace std;
 
@@ -91,7 +93,50 @@ void testSHA1()
   }
 }
 
+int testBase64()
+{
+    std::vector<std::string> decoded =
+      {
+        "pleasure."
+      , "leasure."
+      , "easure."
+      , "asure."
+      , "sure."
+      };
+
+    std::vector<std::string> encoded =
+      {
+        "cGxlYXN1cmUu"
+      , "bGVhc3VyZS4="
+      , "ZWFzdXJlLg=="
+      , "YXN1cmUu"
+      , "c3VyZS4="
+      };
+
+    {
+      std::vector<std::string>::iterator it = decoded.begin();
+      for (; it != decoded.end(); ++it)
+      {
+        std::string result = alm::base64::encode(*it);
+
+        std::cout << "Decoded: " << *it << " Encoded: " << result << std::endl << std::endl;
+      }
+    }
+
+    {
+      std::vector<std::string>::iterator it = encoded.begin();
+      for (; it != encoded.end(); ++it)
+      {
+        std::string result = alm::base64::decode(*it);
+
+        std::cout << "Encoded: " << *it << " Decoded: " << result << std::endl << std::endl;
+      }
+    }
+
+    return 0;
+}
+
 int main()
 {
-  testSHA1();
+  testBase64();
 }
