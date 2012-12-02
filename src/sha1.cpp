@@ -1,6 +1,7 @@
 #include <string.h>
 #include <string>
 #include <sstream>
+#include <arpa/inet.h>
 #include "sha1.h"
 
 namespace alm
@@ -227,8 +228,14 @@ std::string sha1::result()
 {
     padMessage();
 
+    unsigned bigendian[5]; 
+    for(int i=0; i<5; i++)
+    {
+      bigendian[i] = htonl(H[i]);
+    }
+
     char buffer[20];
-    memcpy(buffer, H, sizeof(unsigned) * 5);
+    memcpy(buffer, bigendian, sizeof(unsigned) * 5);
     return std::string(buffer);
 }
 

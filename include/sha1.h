@@ -1,5 +1,5 @@
-#ifndef __ALM__sha1__
-#define __ALM__sha1__
+#ifndef __ALM__SHA1__
+#define __ALM__SHA1__
 
 #include <string>
 #include <exception>

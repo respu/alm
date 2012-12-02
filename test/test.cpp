@@ -15,7 +15,7 @@ using namespace std;
 
 #define TESTA   "abc"
 #define TESTB   "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
-#define TESTC   "k/UT5mNkfV1ztuqE4Vshhg==258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+#define TESTC   "V1teFrO0hH+LmO5hEoITfg==258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 struct processor
 {
@@ -97,6 +97,23 @@ void testSHA1()
     std::cout << "result: " << result << std::endl;
     cout << "Should match:" << endl;
     cout << '\t' << "84983E44 1C3BD26E BAAE4AA1 F95129E5 E54670F1" << endl;
+  }
+
+  {
+    /*
+     *  Perform test C
+     */
+    cout << endl << "Test C: " << TESTC << endl;
+
+    std::string input(TESTC);
+    std::string hexresult = alm::sha1::hexDigest(input);
+    std::cout << "hexresult: " << hexresult << std::endl;
+
+    std::string result = alm::sha1::digest(input);
+    std::cout << "result: " << result << std::endl;
+
+    std::string hashedKey = alm::base64::encode(result);
+    std::cout << "hashedKey: " << hashedKey << std::endl;
   }
 }
 
