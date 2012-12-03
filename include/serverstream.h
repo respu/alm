@@ -19,8 +19,8 @@ class serverstream
 {
 public:
   serverstream()
-    : m_running(false), m_port(0), m_processor(0), m_listenFD(0),
-      m_numSockets(0)
+    : m_timeout(0),m_running(false), m_port(0), m_processor(0),
+      m_listenFD(0), m_numSockets(0)
   {
     memset(&m_sockAddr, 0, sizeof(m_sockAddr));
   }

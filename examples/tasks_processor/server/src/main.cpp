@@ -27,17 +27,12 @@ class processor
 {
 public:
   alm::thread_pool pool;
-  alm::safe_map<int, alm::clientstream*> clients;
   alm::safe_map<unsigned int, request*> requests;
 
   processor():pool(2){}
 
   ~processor()
   {
-    clients.for_each([] (alm::clientstream* client)
-      {
-        delete client;
-      });
     requests.for_each([] (request* rqst)
       {
         delete rqst;
@@ -49,20 +44,11 @@ public:
     std::cout << "ip: " << inet_ntoa(clientAddr.sin_addr) <<
 		" port: " << ntohs(clientAddr.sin_port) <<
 		" socketFD: " << newSocketFD << std::endl;
-
-    alm::clientstream* client = new alm::clientstream();
-    client->openSocket(inet_ntoa(clientAddr.sin_addr), 2100);
-    clients.insert(newSocketFD, client);
   }
 
   void removeClient(int socketFD)
   {
     std::cout << "Closed client socket " << socketFD << std::endl;
-
-    clients.erase(socketFD, [](alm::clientstream* client)
-      {
-        delete client;
-      });
   }
 
   void recvMessage(int socketFD)
@@ -115,16 +101,13 @@ public:
   void notifyClient(int socketFD, unsigned int ticket)
   {
      std::stringstream ss;
-     ss << "Create new task: " << ticket;
+     ss << "Created new task: " << ticket;
      std::string ack = ss.str();
      alm::outmessage outmsg;
      outmsg.data = (unsigned char*)ack.c_str();
      outmsg.size = ack.length();
-     try
-     {
-       clients.find(socketFD)->sendMessage(outmsg);
-     }
-     catch(...){} 
+
+     alm::network::sendMessage(socketFD, outmsg);
   }
 
   void stopRequest(alm::ibstream &input)
@@ -151,11 +134,9 @@ public:
       alm::outmessage outmsg;
       outmsg.data = (unsigned char*)ack.c_str();
       outmsg.size = ack.length();  
-      try
-      {
-        clients.find(socketFD)->sendMessage(outmsg);
-      }
-      catch(...){}
+
+      alm::network::sendMessage(socketFD, outmsg);
+
       sleep(3);
     }
   }

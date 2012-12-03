@@ -4,7 +4,6 @@
 #include <sstream>
 #include <arpa/inet.h>
 #include "clientstream.h"
-#include "serverstream.h"
 #include "network.h"
 #include "obstream.h"
 #include "ibstream.h"
@@ -45,18 +44,6 @@ struct stop_task : base_task
 
 struct processor
 {
-  void addClient(int newSocketFD, sockaddr_in clientAddr)
-  {
-    std::cout << "ip: " << inet_ntoa(clientAddr.sin_addr) <<
-		" port: " << ntohs(clientAddr.sin_port) <<
-		" socketFD: " << newSocketFD << std::endl;
-  }
-
-  void removeClient(int socketFD)
-  {
-    std::cout << "Closed client socket " << socketFD << std::endl;
-  }
-
   void recvMessage(int socketFD)
   {
      std::cout << "Received Message" << std::endl;
@@ -67,7 +54,8 @@ struct processor
   }
 };
 
-void createTask(alm::clientstream &client)
+template<typename Client>
+void createTask(Client &client)
 {
   create_task task;
 
@@ -80,7 +68,8 @@ void createTask(alm::clientstream &client)
   client.sendMessage(outmsg);
 }
 
-void stopTask(alm::clientstream &client, int requestID)
+template<typename Client>
+void stopTask(Client &client, int requestID)
 {
   stop_task task;
   task.requestID = requestID;
@@ -97,11 +86,9 @@ void stopTask(alm::clientstream &client, int requestID)
 int main()
 {
   processor p;
-  alm::serverstream<processor> server(2100, p);
-  server.start();
 
-  alm::clientstream client;
-  client.openSocket("127.0.0.1", 1100);
+  alm::clientstream<processor> client;
+  client.start("127.0.0.1", 1100, p, 5000);
 
   std::string line;
   while (std::getline(std::cin, line))
@@ -126,8 +113,6 @@ int main()
     }
   }
 
-  client.closeSocket();
-
-  server.stop();
+  client.stop();
 }
 
