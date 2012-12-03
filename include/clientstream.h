@@ -25,6 +25,10 @@ public:
     memset(&m_sockAddr, 0, sizeof(m_sockAddr));
   }
 
+  clientstream(clientstream const&) = delete;
+  
+  clientstream& operator =(clientstream const&) = delete;
+
   ~clientstream()
   {
     stop();
