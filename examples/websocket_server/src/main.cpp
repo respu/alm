@@ -46,15 +46,32 @@ private:
   std::string base;
 };
 
-enum webSocketConn { CONNECTING, OPEN };
+enum websocket_conn { CONNECTING, OPEN };
 
 struct websocket_incomplete_frame_exception : std::exception {};
 
-class websocketProcessor
+struct frame_header
+{
+  unsigned char fin;           // 1st bit
+  unsigned char opcode;        // low 4 bits 
+    // 2nd byte
+  unsigned char masked;        // 1st bit
+  unsigned char length;        // low 7 bits
+
+  // 3rd - 9th bytes
+  unsigned int payload_length;
+  unsigned int pos;
+
+  unsigned int mask;
+};
+
+template<typename handler>
+class websocket_processor
 {
 public:
-  websocketProcessor()
-    : MAGIC_KEY("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
+  websocket_processor(handler& h)
+    : MAGIC_KEY("258EAFA5-E914-47DA-95CA-C5AB0DC85B11"),
+      m_handler(h)
   {
   }
 
@@ -63,15 +80,15 @@ public:
     std::cout << "ip: " << inet_ntoa(clientAddr.sin_addr) <<
 		" port: " << ntohs(clientAddr.sin_port) <<
 		" socketFD: " << newSocketFD << std::endl;
-    webSocketConn status = CONNECTING;
-    clients.insert(newSocketFD, status); 
+    websocket_conn status = CONNECTING;
+    m_clients.insert(newSocketFD, status); 
   }
 
   void removeClient(int socketFD)
   {
     std::cout << "Closed client socket " << socketFD << std::endl;
 
-    clients.erase(socketFD, [] (int){}); 
+    m_clients.erase(socketFD, [] (int){}); 
   }
 
   void recvMessage(int socketFD)
@@ -90,21 +107,27 @@ public:
     }
     else if( rc > 0)
     {
+//      std::cout << "Message: " << std::endl;
+//      std::cout.write(input, rc);
+//      std::cout << std::endl; 
+
       request(socketFD, input, rc);
     }
   }
 
   void request(int socketFD, char* input, int length)
   {
-    webSocketConn status = clients.find(socketFD);
+    websocket_conn status = m_clients.find(socketFD);
     if(status == CONNECTING)
     {
       handshake(socketFD, input, length);
+      websocket_conn status = OPEN;
+      m_clients.insert(socketFD, status);
     }
     else if(status == OPEN)
     {
-      readFrame(socketFD, input, length);
-    } 
+      readFrames(socketFD, input, length);
+    }
   }
 
   std::string getKey(std::stringstream &ss)
@@ -144,12 +167,31 @@ public:
     std::string ack = response.str();
 
     write(socketFD, ack.c_str(), ack.length());
-
-    webSocketConn status = OPEN;
-    clients.insert(socketFD, status);
   }
 
-  void readFrame(int socketFD, char* input, int in_length)
+  void readFrames(int socketFD, char* input, int in_length)
+  {
+    alm::inmessage msg;
+
+    frame_header header;
+    parseFrameHeader(input, in_length, header);
+
+    unsigned int pos = header.pos;
+    parseFramePayload(socketFD, input, in_length, header, pos, msg);
+
+    while(msg.size < header.payload_length)
+    {
+      pos = 0;
+      int buffer_size = header.payload_length - msg.size; 
+      char buffer[buffer_size];
+      int rc =read(socketFD, buffer, buffer_size);
+      parseFramePayload(socketFD, buffer, rc, header, pos, msg);
+    }
+
+    m_handler.doFrame(socketFD, msg, header.opcode);
+  }
+
+  void parseFrameHeader(char* input, int in_length, frame_header &header)
   {
     if(in_length < 3)
     {
@@ -157,97 +199,133 @@ public:
     }
 
     // 1st byte
-    char fin    = input[0] & 0x80; // 1st bit
-    char opcode = input[0] & 0x0F; // low 4 bits 
+    header.fin    = input[0] & 0x80; // 1st bit
+    header.opcode = input[0] & 0x0F; // low 4 bits 
     // 2nd byte
-    char masked = input[1] & 0x80; // 1st bit
-    char length = input[1] & 0x7F; // low 7 bits
+    header.masked = input[1] & 0x80; // 1st bit
+    header.length = input[1] & 0x7F; // low 7 bits
 
     // 3rd - 9th bytes
-    int payload_length = length;
-    int pos = 2;
-    if(length == 126)
+    header.payload_length = header.length;
+    header.pos = 2;
+    if(header.length == 126)
     {
-      payload_length = input[2] + (input[3] << 8);
-      pos += 2;
+      unsigned short network_length = *((unsigned short*)(input + header.pos));
+      header.payload_length = ntohs(network_length);  
+      header.pos += 2;
     }
-    else if(length == 127)
+    else if(header.length == 127)
     {
-      payload_length = input[2] + (input[3] << 8);
-      pos += 8;
-    }
-
-    if(in_length < pos + payload_length)
-    {
-      throw websocket_incomplete_frame_exception();
+      // TODO: 64-bit long
+      unsigned long long network_length = *((unsigned short*)(input + header.pos));
+      header.payload_length = ntohl(network_length);
+      header.pos += 8;
     }
 
-    unsigned int mask = 0;
-    if(masked)
+    header.mask = 0;
+    if(header.masked)
     {
-      mask = *((unsigned int*)(input + pos));
-      pos += 4;
-
-      // unmask data:
-      char* c = input + pos;
-      for(int i=0; i<payload_length; i++)
-      {
-	c[i] = c[i] ^ ((char*)(&mask))[i%4];
-      }
+      header.mask = *((unsigned int*)(input + header.pos));
+      header.pos += 4;
     }
-
-    char out_buffer[payload_length];
-    memcpy(out_buffer, input + pos, payload_length);
-
-    std::cout << "Frame: " << std::endl;
-    std::cout.write(out_buffer, payload_length);
-    std::cout << std::endl;
-
-    std::cout << "Opcode: " << opcode << std::endl;
-
-    writeFrame(socketFD, out_buffer, payload_length, opcode);
   }
 
-  void writeFrame(int socketFD, char* output, int length, char opcode)
+  void parseFramePayload(int socketFD, char* input, unsigned int in_length,
+                  frame_header &header, unsigned int pos, alm::inmessage &msg)
   {
-    char header[10];
+    if(header.masked)
+    {
+      // unmask data:
+      char* c = input + pos;
+      unsigned int max = header.payload_length > in_length ?
+                         in_length : header.payload_length;
+      for(unsigned int i=0; i<max; i++)
+      {
+	c[i] = c[i] ^ ((char*)(&header.mask))[i%4];
+      }
+    }
+    unsigned int written_length = header.payload_length > in_length ?
+                                  in_length - pos : header.payload_length;
+    msg.write((unsigned char*)input + pos, written_length);
+  }
 
+  static unsigned int writeFrameHeader(unsigned char* header, unsigned char* data,
+                                       unsigned int size, char opcode)
+  {
     // 1st byte
     header[0]  = 0x80;   // 1st bit (FIN)
     header[0] |= opcode; // lower 4 bits (OPCODE)
 
-    int pos = 1;
-    if(length<=125)
+    unsigned int pos = 1;
+    if(size<=125)
     {
-      header[pos++] = length;
+      header[pos++] = size;
     }
-    else if(length<=65535)
+    else if(size<=65535)
     {
       header[pos++] = 126; //16 bit length
-      header[pos++] = (length >> 8) & 0xFF; // rightmost first
-      header[pos++] = length & 0xFF;
+
+      unsigned short host_length = (unsigned short)(size);
+      unsigned short network_length = htons(host_length);
+      memcpy(header + pos, &network_length, sizeof(network_length));
+      pos += sizeof(network_length);
     }
     else
     { // >2^16-1
+      //TODO: write 8 bytes length
+
       header[pos++] = 127; //64 bit length
 
-      //TODO: write 8 bytes length
+      unsigned int host_length = size;
+      unsigned int network_length = htonl(host_length);
+      memcpy(header + pos, &network_length, sizeof(network_length));
+
       pos+=8;
-     }
+    }
+
+    return pos;
+  }
+
+  static void writeFrame(int socketFD, unsigned char* data, unsigned int size, char opcode)
+  {
+    unsigned char header[14];
+    unsigned int pos = writeFrameHeader(header, data, size, opcode);
      
-     int response_length = length + pos;
-     char response[response_length];
+    int response_length = pos + size;
+    char response[response_length];
 
-     memcpy(response, header, pos);
-     memcpy(response + pos, output, length);
+    memcpy(response, header, pos);
+    memcpy(response + pos, data, size);
 
-     write(socketFD, response, response_length);
+    write(socketFD, response, response_length);
   }
 
 private:
-  alm::safe_map<int, webSocketConn> clients;
+  const std::string MAGIC_KEY;
 
-  const std::string MAGIC_KEY; 
+  alm::safe_map<int, websocket_conn> m_clients;
+
+  handler& m_handler;
+};
+
+struct websocket_handler
+{
+  void doFrame(int socketFD, alm::inmessage &msg, char opcode)
+  {
+    alm::inmessage m(std::move(msg));
+
+    std::cout << "Frame: " << std::endl;
+    std::cout.write((char*)m.data, m.size);
+    std::cout << std::endl;
+
+    std::cout << "Opcode: " << opcode << std::endl;
+
+    alm::outmessage out;
+    out.data = m.data;
+    out.size = m.size;
+
+    websocket_processor<websocket_handler>::writeFrame(socketFD, out.data, out.size, opcode);
+  }
 };
 
 int main(void)
@@ -257,8 +335,9 @@ int main(void)
   alm::serverstream<alm::http_processor<httpProcessor>> http_server;
   http_server.start(1100, http_p, 5000);
 
-  websocketProcessor websocket_p;
-  alm::serverstream<websocketProcessor> websocket_server;
+  websocket_handler handler;
+  websocket_processor<websocket_handler> websocket_p(handler);
+  alm::serverstream<websocket_processor<websocket_handler>> websocket_server;
   websocket_server.start(1101, websocket_p, 5000);
 
   std::string line;
