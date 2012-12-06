@@ -32,10 +32,9 @@ void f1()
   alm::ibstream input(5);
   alm::obstream output;
 
-  processor p;
   alm::serverstream<processor> server;
 
-  alm::clientstream client;
+  alm::clientstream<processor> client;
 
   alm::safe_map<int, int> map;
 }

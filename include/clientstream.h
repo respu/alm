@@ -8,7 +8,6 @@
 #include <thread>
 #include <atomic>
 #include "exceptions.h"
-#include "messages.h"
 #include "network.h"
 
 namespace alm
@@ -59,9 +58,9 @@ public:
     }
   }
 
-  void sendMessage(outmessage &msg)
+  void sendMessage(unsigned char* data, unsigned int size)
   {
-    network::sendMessage(m_socketFD, msg);
+    network::send(m_socketFD, data, size);
   }
 
 private:

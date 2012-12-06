@@ -6,6 +6,28 @@
 
 namespace alm
 {
+inmessage::inmessage()
+  : size(0), data(0)
+{
+}
+
+inmessage::~inmessage()
+{
+  if(data)
+  {
+    delete[] data;
+  }
+}
+
+void inmessage::allocate(unsigned int msgSize)
+{
+  if(data)
+  {
+    throw message_allocation_exception();
+  }
+  size = msgSize;
+  data = new unsigned char[size];
+}
 
 const int network::HEADER_SIZE = sizeof(int);
 
@@ -64,19 +86,19 @@ void network::readBody(int socketFD, inmessage &msg, unsigned int totalSize)
   }
 }
 
-void network::recvMessage(int socketFD, inmessage &msg)
+void network::recv(int socketFD, inmessage &msg)
 {
   unsigned int totalSize = readHeader(socketFD);
   readBody(socketFD, msg, totalSize);
 }
 
-void network::sendMessage(int socketFD, outmessage &msg)
+void network::send(int socketFD, unsigned char* data, unsigned int size)
 {
-  int totalSize = sizeof(int) + msg.size;
+  int totalSize = sizeof(int) + size;
 
   unsigned char buffer[totalSize];
   memcpy(buffer, &totalSize, sizeof(totalSize));
-  memcpy(buffer + sizeof(totalSize), msg.data, msg.size);
+  memcpy(buffer + sizeof(totalSize), data, size);
  
   int remainingMessageSize = totalSize; 
   unsigned char* position = buffer;

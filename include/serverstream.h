@@ -9,7 +9,6 @@
 #include <atomic>
 #include "network.h"
 #include "exceptions.h"
-#include "messages.h"
 
 namespace alm
 {

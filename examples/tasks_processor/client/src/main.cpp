@@ -48,7 +48,7 @@ struct processor
   {
      std::cout << "Received Message" << std::endl;
      alm::inmessage msg;
-     alm::network::recvMessage(socketFD, msg);
+     alm::network::recv(socketFD, msg);
      std::cout.write((const char*)msg.data, msg.size);
      std::cout << std::endl;
   }
@@ -62,10 +62,7 @@ void createTask(Client &client)
   alm::obstream output;
   task.serialize(output);
       
-  alm::outmessage outmsg;
-  outmsg.data = output.data();
-  outmsg.size = output.size();
-  client.sendMessage(outmsg);
+  client.sendMessage(output.data(), output.size());
 }
 
 template<typename Client>
@@ -77,10 +74,7 @@ void stopTask(Client &client, int requestID)
   alm::obstream output;
   task.serialize(output);
      
-  alm::outmessage outmsg;
-  outmsg.data = output.data();
-  outmsg.size = output.size();
-  client.sendMessage(outmsg);
+  client.sendMessage(output.data(), output.size());
 }
 
 int main()

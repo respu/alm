@@ -10,9 +10,18 @@ obstream::obstream()
 {
 }
 
+obstream::obstream(obstream &&other)
+  : m_buffer(other.m_buffer), m_capacity(other.m_capacity),
+    m_size(other.m_size)
+{
+  other.m_buffer   = 0;
+  other.m_capacity = 0;
+  other.m_size     = 0;
+}
+
 obstream::~obstream()
 {
-  delete[] m_buffer;
+  clean();
 }
 
 unsigned char* obstream::data()
@@ -29,28 +38,38 @@ void obstream::serialize(std::string &value)
 {
   std::string tmp = value + '\0';
   unsigned int size = sizeof(unsigned char)*tmp.length();
-  copyData((void*)tmp.c_str(), size);
+  write((unsigned char*)tmp.c_str(), size);
 }
 
-void obstream::copyData(void* source, unsigned int size)
+void obstream::write(unsigned char* data, unsigned int size)
 {
   if(m_size + size >= m_capacity)
   {
-    resize();
+    resize(m_size + size);
   }
     
-  memcpy(m_buffer + m_size, source, size);
+  memcpy(m_buffer + m_size, data, size);
   m_size += size;
 }
 
-void obstream::resize()
+void obstream::resize(unsigned int size)
 {
-  m_capacity = m_size * 2;
+  m_capacity = size * 2;
   unsigned char* new_buffer = new unsigned char[m_capacity];
   memcpy(new_buffer, m_buffer, sizeof(unsigned char) * m_size);
 
   delete[] m_buffer;
   m_buffer = new_buffer;
+}
+
+void obstream::clean()
+{
+  if(m_buffer)
+  {
+    delete[] m_buffer;
+  }
+  m_capacity = 0;
+  m_size     = 0;
 }
 
 }

@@ -59,7 +59,7 @@ public:
 
      // If the message is read from another thread, it generates
      // a segmentation fault.
-     alm::network::recvMessage(socketFD, msg);
+     alm::network::recv(socketFD, msg);
 
      processMessage(socketFD, msg);
   }
@@ -103,11 +103,7 @@ public:
      std::stringstream ss;
      ss << "Created new task: " << ticket;
      std::string ack = ss.str();
-     alm::outmessage outmsg;
-     outmsg.data = (unsigned char*)ack.c_str();
-     outmsg.size = ack.length();
-
-     alm::network::sendMessage(socketFD, outmsg);
+     alm::network::send(socketFD, (unsigned char*)ack.c_str(), ack.length());
   }
 
   void stopRequest(alm::ibstream &input)
@@ -131,11 +127,7 @@ public:
       std::stringstream ss;
       ss << "Task: " << rqst.ticket << " Progress: " << progress++;
       std::string ack = ss.str();
-      alm::outmessage outmsg;
-      outmsg.data = (unsigned char*)ack.c_str();
-      outmsg.size = ack.length();  
-
-      alm::network::sendMessage(socketFD, outmsg);
+      alm::network::send(socketFD, (unsigned char*)ack.c_str(), ack.length());
 
       sleep(3);
     }

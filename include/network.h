@@ -1,17 +1,27 @@
 #ifndef __ALM__NETWORK__
 #define __ALM__NETWORK__
 
-#include "messages.h"
-
 namespace alm
 {
+
+struct inmessage
+{
+  unsigned int size;
+  unsigned char* data;
+
+  inmessage();
+
+  ~inmessage();
+
+  void allocate(unsigned int msgSize);
+};
 
 class network
 {
 public:
-  static void recvMessage(int socketFD, inmessage &msg);
+  static void recv(int socketFD, inmessage &msg);
 
-  static void sendMessage(int socketFD, outmessage &msg); 
+  static void send(int socketFD, unsigned char* data, unsigned int size); 
 
 private:
   static const int HEADER_SIZE; 

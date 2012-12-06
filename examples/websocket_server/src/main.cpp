@@ -9,6 +9,7 @@
 #include "safe_map.h"
 #include "sha1.h"
 #include "base64.h"
+#include "obstream.h"
 
 class httpProcessor
 {
@@ -171,24 +172,24 @@ public:
 
   void readFrames(int socketFD, char* input, int in_length)
   {
-    alm::inmessage msg;
+    alm::obstream stream;
 
     frame_header header;
     parseFrameHeader(input, in_length, header);
 
     unsigned int pos = header.pos;
-    parseFramePayload(socketFD, input, in_length, header, pos, msg);
+    parseFramePayload(socketFD, input, in_length, header, pos, stream);
 
-    while(msg.size < header.payload_length)
+    while(stream.size() < header.payload_length)
     {
       pos = 0;
-      int buffer_size = header.payload_length - msg.size; 
+      int buffer_size = header.payload_length - stream.size();
       char buffer[buffer_size];
       int rc =read(socketFD, buffer, buffer_size);
-      parseFramePayload(socketFD, buffer, rc, header, pos, msg);
+      parseFramePayload(socketFD, buffer, rc, header, pos, stream);
     }
 
-    m_handler.doFrame(socketFD, msg, header.opcode);
+    m_handler.doFrame(socketFD, stream, header.opcode);
   }
 
   void parseFrameHeader(char* input, int in_length, frame_header &header)
@@ -231,7 +232,7 @@ public:
   }
 
   void parseFramePayload(int socketFD, char* input, unsigned int in_length,
-                  frame_header &header, unsigned int pos, alm::inmessage &msg)
+                  frame_header &header, unsigned int pos, alm::obstream &stream)
   {
     if(header.masked)
     {
@@ -246,7 +247,7 @@ public:
     }
     unsigned int written_length = header.payload_length > in_length ?
                                   in_length - pos : header.payload_length;
-    msg.write((unsigned char*)input + pos, written_length);
+    stream.write((unsigned char*)input + pos, written_length);
   }
 
   static unsigned int writeFrameHeader(unsigned char* header, unsigned char* data,
@@ -310,21 +311,17 @@ private:
 
 struct websocket_handler
 {
-  void doFrame(int socketFD, alm::inmessage &msg, char opcode)
+  void doFrame(int socketFD, alm::obstream &stream, char opcode)
   {
-    alm::inmessage m(std::move(msg));
+    alm::obstream m(std::move(stream));
 
     std::cout << "Frame: " << std::endl;
-    std::cout.write((char*)m.data, m.size);
+    std::cout.write((char*)m.data(), m.size());
     std::cout << std::endl;
 
     std::cout << "Opcode: " << opcode << std::endl;
 
-    alm::outmessage out;
-    out.data = m.data;
-    out.size = m.size;
-
-    websocket_processor<websocket_handler>::writeFrame(socketFD, out.data, out.size, opcode);
+    websocket_processor<websocket_handler>::writeFrame(socketFD, m.data(), m.size(), opcode);
   }
 };
 

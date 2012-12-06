@@ -12,6 +12,8 @@ class obstream
 public:
   obstream();
 
+  obstream(obstream &&other);
+
   ~obstream();
 
   unsigned char* data();
@@ -25,6 +27,13 @@ public:
     return *this;
   }
 
+  void write(unsigned char* data, unsigned int length);
+
+  void clean();
+
+  obstream(const obstream &other)             = delete;
+  obstream& operator= (const obstream &other) = delete;
+
 private:
   static const unsigned int DEFAULT_CAPACITY = 128;
 
@@ -37,14 +46,12 @@ private:
   template<typename T>
   void serialize(T &value)
   {
-    copyData(&value, sizeof(value));
+    write((unsigned char*)&value, sizeof(value));
   }
 
   void serialize(std::string &value);
 
-  void copyData(void* source, unsigned int size);
-
-  void resize();
+  void resize(unsigned int size);
 };
 
 }
