@@ -66,8 +66,8 @@ public:
 
   void processMessage(int socketFD, alm::inmessage &msg)
   {
-    alm::ibstream input(msg.size);
-    memcpy(input.data(),msg.data,msg.size);
+    alm::ibstream input;
+    input.write(msg.data,msg.size);
     int32_t networkType;
     input >> networkType; 
     task_type type = (task_type)ntohl(networkType);

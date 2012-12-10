@@ -21,6 +21,9 @@ struct ip_address_exception         : std::exception {};
 struct connect_failed_exception     : std::exception {};
 
 struct file_not_found_exception     : std::exception {};
+
+struct out_of_bounds_exception : std::exception { };
+
 }
 
 #endif

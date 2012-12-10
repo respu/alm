@@ -3,14 +3,25 @@
 namespace alm
 {
 
-ibstream::ibstream(unsigned int size)
-  : m_buffer(new unsigned char[size]), m_size(size), m_counter(0)
+ibstream::ibstream()
+  : m_buffer(new unsigned char[DEFAULT_CAPACITY]),
+    m_capacity(DEFAULT_CAPACITY), m_size(0), m_counter(0)
 {
+}
+
+ibstream::ibstream(ibstream &&other)
+  : m_buffer(other.m_buffer), m_capacity(other.m_capacity),
+    m_size(other.m_size), m_counter(other.m_counter)
+{
+  other.m_buffer   = 0;
+  other.m_capacity = 0;
+  other.m_size     = 0;
+  other.m_counter  = 0;
 }
 
 ibstream::~ibstream()
 {
-  delete[] m_buffer;
+  clean();
 }
 
 unsigned char* ibstream::data()
@@ -47,14 +58,36 @@ unsigned char ibstream::currentByte()
   return *(m_buffer + m_counter);
 }
 
-void ibstream::copyData(void* target, unsigned int size)
+void ibstream::write(unsigned char* data, unsigned int size)
 {
-  if(m_counter + size > m_size)
+  if(m_size + size >= m_capacity)
   {
-    throw out_of_bounds_exception();
+    resize(m_size + size);
   }
-  memcpy(target, m_buffer + m_counter, size);
-  m_counter += size;
+    
+  memcpy(m_buffer + m_size, data, size);
+  m_size += size;
+}
+
+void ibstream::resize(unsigned int size)
+{
+  m_capacity = size * 2;
+  unsigned char* new_buffer = new unsigned char[m_capacity];
+  memcpy(new_buffer, m_buffer, sizeof(unsigned char) * m_size);
+
+  delete[] m_buffer;
+  m_buffer = new_buffer;
+}
+
+void ibstream::clean()
+{
+  if(m_buffer)
+  {
+    delete[] m_buffer;
+  }
+  m_capacity = 0;
+  m_size     = 0;
+  m_counter  = 0;
 }
 
 }

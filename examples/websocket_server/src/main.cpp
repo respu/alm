@@ -9,7 +9,8 @@
 #include "safe_map.h"
 #include "sha1.h"
 #include "base64.h"
-#include "obstream.h"
+#include "ibstream.h"
+#include "ibstream.h"
 
 class httpProcessor
 {
@@ -172,7 +173,7 @@ public:
 
   void readFrames(int socketFD, char* input, int in_length)
   {
-    alm::obstream stream;
+    alm::ibstream stream;
 
     frame_header header;
     parseFrameHeader(input, in_length, header);
@@ -232,7 +233,7 @@ public:
   }
 
   void parseFramePayload(int socketFD, char* input, unsigned int in_length,
-                  frame_header &header, unsigned int pos, alm::obstream &stream)
+                  frame_header &header, unsigned int pos, alm::ibstream &stream)
   {
     if(header.masked)
     {
@@ -311,9 +312,9 @@ private:
 
 struct websocket_handler
 {
-  void doFrame(int socketFD, alm::obstream &stream, char opcode)
+  void doFrame(int socketFD, alm::ibstream &stream, char opcode)
   {
-    alm::obstream m(std::move(stream));
+    alm::ibstream m(std::move(stream));
 
     std::cout << "Frame: " << std::endl;
     std::cout.write((char*)m.data(), m.size());

@@ -29,7 +29,7 @@ struct processor
 void f1()
 {
   alm::thread_pool pool(2);
-  alm::ibstream input(5);
+  alm::ibstream input;
   alm::obstream output;
 
   alm::serverstream<processor> server;

@@ -6,7 +6,6 @@
 #include "clientstream.h"
 #include "network.h"
 #include "obstream.h"
-#include "ibstream.h"
 
 enum task_type { CREATE, PAUSE, RESUME, STOP};
 
