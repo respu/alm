@@ -6,12 +6,12 @@
 
 namespace alm
 {
-inmessage::inmessage()
+message::message()
   : size(0), data(0)
 {
 }
 
-inmessage::~inmessage()
+message::~message()
 {
   if(data)
   {
@@ -19,7 +19,7 @@ inmessage::~inmessage()
   }
 }
 
-void inmessage::allocate(unsigned int msgSize)
+void message::allocate(unsigned int msgSize)
 {
   if(data)
   {
@@ -57,7 +57,7 @@ unsigned int network::readHeader(int socketFD)
   return messageTotalSize;
 }
 
-void network::readBody(int socketFD, inmessage &msg, unsigned int totalSize)
+void network::readBody(int socketFD, message &msg, unsigned int totalSize)
 {
   int remainingMessageSize = totalSize - HEADER_SIZE;
 
@@ -86,7 +86,7 @@ void network::readBody(int socketFD, inmessage &msg, unsigned int totalSize)
   }
 }
 
-void network::recv(int socketFD, inmessage &msg)
+void network::recv(int socketFD, message &msg)
 {
   unsigned int totalSize = readHeader(socketFD);
   readBody(socketFD, msg, totalSize);

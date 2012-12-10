@@ -4,14 +4,14 @@
 namespace alm
 {
 
-struct inmessage
+struct message
 {
   unsigned int size;
   unsigned char* data;
 
-  inmessage();
+  message();
 
-  ~inmessage();
+  ~message();
 
   void allocate(unsigned int msgSize);
 };
@@ -19,7 +19,7 @@ struct inmessage
 class network
 {
 public:
-  static void recv(int socketFD, inmessage &msg);
+  static void recv(int socketFD, message &msg);
 
   static void send(int socketFD, unsigned char* data, unsigned int size); 
 
@@ -28,7 +28,7 @@ private:
 
   static unsigned int readHeader(int socketFD);
 
-  static void readBody(int socketFD, inmessage &msg, unsigned int totalSize);
+  static void readBody(int socketFD, message &msg, unsigned int totalSize);
 };
 
 }

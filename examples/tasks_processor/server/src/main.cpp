@@ -55,7 +55,7 @@ public:
   {
      std::cout << "Received message" << std::endl;
      
-     alm::inmessage msg;
+     alm::message msg;
 
      // If the message is read from another thread, it generates
      // a segmentation fault.
@@ -64,7 +64,7 @@ public:
      processMessage(socketFD, msg);
   }
 
-  void processMessage(int socketFD, alm::inmessage &msg)
+  void processMessage(int socketFD, alm::message &msg)
   {
     alm::ibstream input;
     input.write(msg.data,msg.size);

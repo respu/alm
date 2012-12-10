@@ -46,7 +46,7 @@ struct processor
   void recvMessage(int socketFD)
   {
      std::cout << "Received Message" << std::endl;
-     alm::inmessage msg;
+     alm::message msg;
      alm::network::recv(socketFD, msg);
      std::cout.write((const char*)msg.data, msg.size);
      std::cout << std::endl;
