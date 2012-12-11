@@ -7,7 +7,6 @@
 #include <string.h>
 #include <thread>
 #include <atomic>
-#include "network.h"
 #include "exceptions.h"
 
 namespace alm

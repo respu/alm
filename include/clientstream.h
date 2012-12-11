@@ -8,7 +8,6 @@
 #include <thread>
 #include <atomic>
 #include "exceptions.h"
-#include "network.h"
 
 namespace alm
 {
@@ -60,7 +59,7 @@ public:
 
   void sendMessage(unsigned char* data, unsigned int size)
   {
-    network::send(m_socketFD, data, size);
+    m_processor->sendMessage(m_socketFD, data, size);
   }
 
 private:

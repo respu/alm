@@ -51,6 +51,12 @@ struct processor
      std::cout.write((const char*)msg.data, msg.size);
      std::cout << std::endl;
   }
+
+  void sendMessage(int socketFD, unsigned char* data,
+                   unsigned int size)
+  {
+    alm::network::send(socketFD, data, size);
+  }
 };
 
 template<typename Client>
