@@ -3,15 +3,15 @@
 #include <string>
 #include <string.h>
 #include "thread_pool.h"
-#include "serverstream.h"
-#include "http_processor.h"
+#include "tcp_server.h"
+#include "http.h"
 
-class processor
+class handler
 {
 public:
-  processor(const char* basedir) :pool(2), base(basedir) { }
+  handler(const char* basedir) :pool(2), base(basedir) { }
 
-  ~processor() { }
+  ~handler() { }
 
   void doGet(int socketFD, const std::string &url)
   {
@@ -20,7 +20,7 @@ public:
     std::string fileName = base + url;
     pool.submit([&, socketFD, fileName]
       {
-        alm::http_processor<processor>::responseFile(socketFD, fileName);
+        alm::http<handler>::responseFile(socketFD, fileName);
       });
   }
 
@@ -32,7 +32,7 @@ public:
     std::string fileName = base + url;
     pool.submit([&, socketFD, fileName]
       {
-        alm::http_processor<processor>::responseFile(socketFD, fileName);
+        alm::http<handler>::responseFile(socketFD, fileName);
       });
   }
 
@@ -44,9 +44,9 @@ private:
 
 int main(void)
 {
-  processor p("/home/alem/Workspace/web/");
-  alm::http_processor<processor> http_p(p);
-  alm::serverstream<alm::http_processor<processor>> server;
+  handler p("/home/alem/Workspace/web/");
+  alm::http<handler> http_p(p);
+  alm::tcp_server<alm::http<handler>> server;
   server.start(1100, http_p, 5000);
 
   std::string line;

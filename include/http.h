@@ -1,5 +1,5 @@
-#ifndef __ALM__HTTP_PROCESSOR__
-#define __ALM__HTTP_PROCESSOR__
+#ifndef __ALM__HTTP__
+#define __ALM__HTTP__
 
 #include <string>
 #include <sstream>
@@ -10,13 +10,13 @@
 namespace alm
 {
 
-template<typename processor>
-class http_processor
+template<typename handler>
+class http
 {
 public:
-  http_processor(processor &proc) : m_processor(proc) { }
+  http(handler &handler_) : m_handler(handler_) { }
 
-  ~http_processor() { }
+  ~http() { }
 
   void addClient(int newSocketFD, sockaddr_in clientAddr) { }
 
@@ -58,7 +58,7 @@ public:
 private:
   static const int INPUT_SIZE = 8096;
 
-  processor& m_processor;
+  handler& m_handler;
 
   char m_input[INPUT_SIZE];
 
@@ -81,14 +81,14 @@ private:
   {
     if(cmd.compare("GET") == 0)
     {
-      m_processor.doGet(socketFD, url);
+      m_handler.doGet(socketFD, url);
     }
     else if(cmd.compare("POST") == 0)
     {
       std::string tmp = ss.str();
       std::string message = 
         tmp.substr(tmp.find_last_of("\n") + 1, tmp.length());
-      m_processor.doPost(socketFD, url, message);
+      m_handler.doPost(socketFD, url, message);
     }
     else
     {
@@ -159,8 +159,8 @@ private:
   }
 };
 
-template<typename processor>
-std::map<std::string, std::string> http_processor<processor>::m_extensions =
+template<typename handler>
+std::map<std::string, std::string> http<handler>::m_extensions =
     {
     {"gif", "image/gif"},
     {"jpg", "image/jpg"},

@@ -5,8 +5,8 @@
 #include <sstream>
 #include <atomic>
 #include <arpa/inet.h>
-#include "clientstream.h"
-#include "serverstream.h"
+#include "tcp_client.h"
+#include "tcp_server.h"
 #include "network.h"
 #include "thread_pool.h"
 #include "safe_map.h"
@@ -137,7 +137,7 @@ public:
 int main(void)
 {
   processor p;
-  alm::serverstream<processor> server;
+  alm::tcp_server<processor> server;
   server.start(1100, p, 5000);
 
   std::string line;

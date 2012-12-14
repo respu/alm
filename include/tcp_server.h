@@ -1,5 +1,5 @@
-#ifndef __ALM__SERVER_STREAM__
-#define __ALM__SERVER_STREAM__
+#ifndef __ALM__TCP_SERVER__
+#define __ALM__TCP_SERVER__
 
 #include <arpa/inet.h>
 #include <sys/poll.h>
@@ -13,21 +13,21 @@ namespace alm
 {
 
 template<typename processor>
-class serverstream
+class tcp_server
 {
 public:
-  serverstream()
+  tcp_server()
     : m_timeout(0),m_running(false), m_port(0), m_processor(0),
       m_listenFD(0), m_numSockets(0)
   {
     memset(&m_sockAddr, 0, sizeof(m_sockAddr));
   }
 
-  serverstream(serverstream const&) = delete;
+  tcp_server(tcp_server const&) = delete;
   
-  serverstream& operator =(serverstream const&) = delete;
+  tcp_server& operator =(tcp_server const&) = delete;
 
-  ~serverstream()
+  ~tcp_server()
   {
     stop(); 
   }
@@ -42,7 +42,7 @@ public:
 
     init();
 
-    m_thread = std::thread(&serverstream<processor>::run, this);
+    m_thread = std::thread(&tcp_server<processor>::run, this);
   }
 
   void stop()

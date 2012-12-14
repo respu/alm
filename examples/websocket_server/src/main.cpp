@@ -3,8 +3,8 @@
 #include <string>
 #include <string.h>
 #include "thread_pool.h"
-#include "serverstream.h"
-#include "http_processor.h"
+#include "tcp_server.h"
+#include "http.h"
 #include "exceptions.h"
 #include "safe_map.h"
 #include "sha1.h"
@@ -26,7 +26,7 @@ public:
     std::string fileName = base + url;
     pool.submit([&, socketFD, fileName]
       {
-        alm::http_processor<httpProcessor>::responseFile(socketFD, fileName);
+        alm::http<httpProcessor>::responseFile(socketFD, fileName);
       });
   }
 
@@ -38,7 +38,7 @@ public:
     std::string fileName = base + url;
     pool.submit([&, socketFD, fileName]
       {
-        alm::http_processor<httpProcessor>::responseFile(socketFD, fileName);
+        alm::http<httpProcessor>::responseFile(socketFD, fileName);
       });
   }
 
@@ -329,13 +329,13 @@ struct websocket_handler
 int main(void)
 {
   httpProcessor p("/home/alem/Workspace/web/");
-  alm::http_processor<httpProcessor> http_p(p);
-  alm::serverstream<alm::http_processor<httpProcessor>> http_server;
+  alm::http<httpProcessor> http_p(p);
+  alm::tcp_server<alm::http<httpProcessor>> http_server;
   http_server.start(1100, http_p, 5000);
 
   websocket_handler handler;
   websocket_processor<websocket_handler> websocket_p(handler);
-  alm::serverstream<websocket_processor<websocket_handler>> websocket_server;
+  alm::tcp_server<websocket_processor<websocket_handler>> websocket_server;
   websocket_server.start(1101, websocket_p, 5000);
 
   std::string line;

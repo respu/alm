@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <arpa/inet.h>
-#include "clientstream.h"
+#include "tcp_client.h"
 #include "network.h"
 #include "obstream.h"
 
@@ -86,7 +86,7 @@ int main()
 {
   processor p;
 
-  alm::clientstream<processor> client;
+  alm::tcp_client<processor> client;
   client.start("127.0.0.1", 1100, p, 5000);
 
   std::string line;
