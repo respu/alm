@@ -13,12 +13,12 @@ CFLAGS = -Wall -g -std=c++0x
 
 # define any directories containing header files other than /usr/include
 #
-INCLUDES = -Iinclude -I$(ALM_PATH)/include
+INCLUDES = -I$(ALM_PATH)/include
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
 #   their path using -Lpath, something like:
-LFLAGS = -L$(ALM_PATH)
+LFLAGS = -L$(ALM_PATH)/lib
 
 # define any libraries to link into executable:
 #   if I want to link in libraries (libx.so or libx.a) I use the -llibname 
@@ -26,20 +26,26 @@ LFLAGS = -L$(ALM_PATH)
 LIBS = -lalm -lpthread
 
 # define the C source files
-SRCS = $(wildcard src/*.cpp)
+SRCDIR = src
+EXT = cpp
+SOURCES = $(wildcard $(SRCDIR)/*.$(EXT))
 
 # define the C object files 
 #
 # This uses Suffix Replacement within a macro:
 #   $(name:string1=string2)
 #         For each word in 'name' replace 'string1' with 'string2'
-# Below we are replacing the suffix .c of all words in the macro SRCS
+# Below we are replacing the suffix .cpp of all words in the macro SOURCES
 # with the .o suffix
 #
-OBJS = $(SRCS:.c=.o)
+OBJDIR = obj
+OBJS1 = $(SOURCES:.$(EXT)=.o)
+OBJS2 =  $(notdir $(OBJS1))
+OBJS =  $(patsubst %,$(OBJDIR)/%,$(OBJS2))
 
 # define the executable file 
-MAIN = main
+BINDIR = bin
+BIN = $(BINDIR)/websocket_server
 
 #
 # The following part of the makefile is generic; it can be used to 
@@ -49,23 +55,22 @@ MAIN = main
 
 .PHONY: depend clean
 
-all:    $(MAIN)
+all:    $(BIN)
 
+$(BIN): $(OBJS) 
+	$(CC) $(CFLAGS) $(INCLUDES) -o $(BIN) $(OBJS) $(LFLAGS) $(LIBS)
 
-$(MAIN): $(OBJS) 
-	$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS)
-
-# this is a suffix replacement rule for building .o's from .c's
+# this is a suffix replacement rule for building .o's from .cpp's
 # it uses automatic variables $<: the name of the prerequisite of
-# the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
+# the rule(a .cpp file) and $@: the name of the target of the rule (a .o file) 
 # (see the gnu make manual section about automatic variables)
-.c.o:
+$(OBJDIR)/%.o: $(SRCDIR)/%.$(EXT) 
 	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
 
 clean:
-	$(RM) *.o *~ $(MAIN)
+	$(RM) $(OBJDIR)/*.o *~ $(BIN)
 
-depend: $(SRCS)
+depend: $(SOURCES)
 	makedepend $(INCLUDES) $^
 
 # DO NOT DELETE THIS LINE -- make depend needs it

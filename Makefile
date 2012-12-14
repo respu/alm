@@ -26,20 +26,26 @@ LFLAGS =
 LIBS = 
 
 # define the C source files
-SRCS = $(wildcard src/*.cpp)
+SRCDIR = src
+EXT = cpp
+SOURCES = $(wildcard $(SRCDIR)/*.$(EXT))
 
 # define the C object files 
 #
 # This uses Suffix Replacement within a macro:
 #   $(name:string1=string2)
 #         For each word in 'name' replace 'string1' with 'string2'
-# Below we are replacing the suffix .c of all words in the macro SRCS
+# Below we are replacing the suffix .cpp of all words in the macro SOURCES
 # with the .o suffix
 #
-OBJS = $(SRCS:.c=.o)
+OBJDIR = obj
+OBJS1 = $(SOURCES:.$(EXT)=.o)
+OBJS2 =  $(notdir $(OBJS1))
+OBJS =  $(patsubst %,$(OBJDIR)/%,$(OBJS2))
 
 # define the executable file 
-MAIN = libalm.so
+BINDIR = lib
+BIN = $(BINDIR)/libalm.so
 
 #
 # The following part of the makefile is generic; it can be used to 
@@ -49,23 +55,22 @@ MAIN = libalm.so
 
 .PHONY: depend clean
 
-all:    $(MAIN)
+all:    $(BIN)
 
+$(BIN): $(OBJS) 
+	$(CC) $(CFLAGS) $(INCLUDES) -o $(BIN) $(OBJS) $(LFLAGS) $(LIBS)
 
-$(MAIN): $(OBJS) 
-	$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS)
-
-# this is a suffix replacement rule for building .o's from .c's
+# this is a suffix replacement rule for building .o's from .cpp's
 # it uses automatic variables $<: the name of the prerequisite of
-# the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
+# the rule(a .cpp file) and $@: the name of the target of the rule (a .o file) 
 # (see the gnu make manual section about automatic variables)
-.c.o:
+$(OBJDIR)/%.o: $(SRCDIR)/%.$(EXT) 
 	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
 
 clean:
-	$(RM) *.o *~ $(MAIN)
+	$(RM) $(OBJDIR)/*.o *~ $(BIN)
 
-depend: $(SRCS)
+depend: $(SOURCES)
 	makedepend $(INCLUDES) $^
 
 # DO NOT DELETE THIS LINE -- make depend needs it
