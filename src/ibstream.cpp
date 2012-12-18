@@ -29,7 +29,7 @@ unsigned char* ibstream::data()
   return m_buffer;
 }
 
-unsigned int ibstream::size()
+unsigned long long ibstream::size()
 {
   return m_size;
 }
@@ -39,18 +39,18 @@ void ibstream::deserialize(std::string &value)
   while(currentByte() != '\0')
   {
     value += currentByte();
-    incCounter(1);
+    incCounter();
   }  
-  incCounter(1);
+  incCounter();
 }
 
-void ibstream::incCounter(unsigned int size)
+void ibstream::incCounter()
 {
-  if(m_counter + size > m_size)
+  if(m_counter + 1 > m_size)
   {
     throw out_of_bounds_exception();
   } 
-  m_counter += size;
+  m_counter += 1;
 }
 
 unsigned char ibstream::currentByte()
@@ -58,7 +58,7 @@ unsigned char ibstream::currentByte()
   return *(m_buffer + m_counter);
 }
 
-void ibstream::write(unsigned char* data, unsigned int size)
+void ibstream::write(unsigned char* data, unsigned long long size)
 {
   if(m_size + size >= m_capacity)
   {
@@ -69,7 +69,7 @@ void ibstream::write(unsigned char* data, unsigned int size)
   m_size += size;
 }
 
-void ibstream::resize(unsigned int size)
+void ibstream::resize(unsigned long long size)
 {
   m_capacity = size * 2;
   unsigned char* new_buffer = new unsigned char[m_capacity];

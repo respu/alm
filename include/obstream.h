@@ -18,7 +18,7 @@ public:
 
   unsigned char* data();
 
-  unsigned int size();
+  unsigned long long size();
 
   template<typename T>
   obstream& operator<< (T &field)
@@ -27,7 +27,7 @@ public:
     return *this;
   }
 
-  void write(unsigned char* data, unsigned int length);
+  void write(unsigned char* data, unsigned long long length);
 
   void clean();
 
@@ -35,13 +35,13 @@ public:
   obstream& operator= (const obstream &other) = delete;
 
 private:
-  static const unsigned int DEFAULT_CAPACITY = 128;
+  static const unsigned short DEFAULT_CAPACITY = 128;
 
   unsigned char* m_buffer;
 
-  unsigned int m_capacity;
+  unsigned long long m_capacity;
 
-  unsigned int m_size;
+  unsigned long long m_size;
 
   template<typename T>
   void serialize(T &value)
@@ -51,7 +51,7 @@ private:
 
   void serialize(std::string &value);
 
-  void resize(unsigned int size);
+  void resize(unsigned long long size);
 };
 
 }

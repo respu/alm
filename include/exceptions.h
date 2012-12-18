@@ -24,6 +24,8 @@ struct file_not_found_exception     : std::exception {};
 
 struct out_of_bounds_exception : std::exception { };
 
+struct websocket_incomplete_frame_exception : std::exception {};
+
 }
 
 #endif

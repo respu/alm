@@ -29,7 +29,7 @@ unsigned char* obstream::data()
   return m_buffer;
 }
 
-unsigned int obstream::size()
+unsigned long long obstream::size()
 {
   return m_size;
 }
@@ -37,11 +37,11 @@ unsigned int obstream::size()
 void obstream::serialize(std::string &value)
 {
   std::string tmp = value + '\0';
-  unsigned int size = sizeof(unsigned char)*tmp.length();
+  unsigned long long size = sizeof(unsigned char)*tmp.length();
   write((unsigned char*)tmp.c_str(), size);
 }
 
-void obstream::write(unsigned char* data, unsigned int size)
+void obstream::write(unsigned char* data, unsigned long long size)
 {
   if(m_size + size >= m_capacity)
   {
@@ -52,7 +52,7 @@ void obstream::write(unsigned char* data, unsigned int size)
   m_size += size;
 }
 
-void obstream::resize(unsigned int size)
+void obstream::resize(unsigned long long size)
 {
   m_capacity = size * 2;
   unsigned char* new_buffer = new unsigned char[m_capacity];

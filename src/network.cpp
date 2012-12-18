@@ -59,15 +59,15 @@ unsigned int network::readHeader(int socketFD)
 
 void network::readBody(int socketFD, message &msg, unsigned int totalSize)
 {
-  int remainingMessageSize = totalSize - HEADER_SIZE;
+  int remaining = totalSize - HEADER_SIZE;
 
-  msg.allocate(remainingMessageSize);
+  msg.allocate(remaining);
 
   unsigned char* position = msg.data;
 
   while(true)
   {
-    int rc = read(socketFD, position, remainingMessageSize);
+    int rc = read(socketFD, position, remaining);
 
     if ( rc == 0 )
     {
@@ -77,9 +77,9 @@ void network::readBody(int socketFD, message &msg, unsigned int totalSize)
     {
       throw socket_error_exception();
     }
-    else if( rc != remainingMessageSize)
+    else if( rc != remaining)
     {
-       remainingMessageSize = remainingMessageSize - rc;
+       remaining -= rc;
        position += rc;
     }
     else break;
@@ -100,12 +100,12 @@ void network::send(int socketFD, unsigned char* data, unsigned int size)
   memcpy(buffer, &totalSize, sizeof(totalSize));
   memcpy(buffer + sizeof(totalSize), data, size);
  
-  int remainingMessageSize = totalSize; 
+  int remaining = totalSize; 
   unsigned char* position = buffer;
 
   while(true)
   {
-    int rc = write(socketFD, position, remainingMessageSize);
+    int rc = write(socketFD, position, remaining);
 
     if ( rc == 0 )
     {
@@ -115,9 +115,9 @@ void network::send(int socketFD, unsigned char* data, unsigned int size)
     {
       throw socket_error_exception();
     }
-    else if( rc != remainingMessageSize)
+    else if( rc != remaining)
     {
-       remainingMessageSize = remainingMessageSize - rc;
+       remaining -= rc;
        position += rc;
     }
     else break;
