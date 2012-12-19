@@ -47,7 +47,7 @@ struct processor
   {
      std::cout << "Received Message" << std::endl;
      alm::message msg;
-     alm::network::recv(socketFD, msg);
+     alm::protocol::recv(socketFD, msg);
      std::cout.write((const char*)msg.data, msg.size);
      std::cout << std::endl;
   }
@@ -55,7 +55,7 @@ struct processor
   void sendMessage(int socketFD, unsigned char* data,
                    unsigned int size)
   {
-    alm::network::send(socketFD, data, size);
+    alm::protocol::send(socketFD, data, size);
   }
 };
 

@@ -29,25 +29,15 @@ void message::allocate(unsigned int msgSize)
   data = new unsigned char[size];
 }
 
-const int network::HEADER_SIZE = sizeof(int);
+const int protocol::HEADER_SIZE = sizeof(int);
 
-unsigned int network::readHeader(int socketFD)
+unsigned int protocol::readHeader(int socketFD)
 {
   unsigned int messageTotalSize = 0;
 
   unsigned char headerBuf[HEADER_SIZE];
 
-  int rc = read(socketFD, headerBuf, HEADER_SIZE);
-
-  if ( rc == 0 )
-  {
-    throw socket_closed_exception();
-  }
-  else if ( rc == -1 )
-  {
-    throw socket_error_exception();
-  }
-  else if ( rc != HEADER_SIZE )
+  if (network::readData(socketFD, headerBuf, HEADER_SIZE) != HEADER_SIZE)
   {
     throw read_header_exception();
   }
@@ -57,7 +47,7 @@ unsigned int network::readHeader(int socketFD)
   return messageTotalSize;
 }
 
-void network::readBody(int socketFD, message &msg, unsigned int totalSize)
+void protocol::readBody(int socketFD, message &msg, unsigned int totalSize)
 {
   int remaining = totalSize - HEADER_SIZE;
 
@@ -65,63 +55,69 @@ void network::readBody(int socketFD, message &msg, unsigned int totalSize)
 
   unsigned char* position = msg.data;
 
-  while(true)
+  int rc;
+  while((rc = network::readData(socketFD, position, remaining)) != remaining)
   {
-    int rc = read(socketFD, position, remaining);
-
-    if ( rc == 0 )
-    {
-      throw socket_closed_exception();
-    }
-    else if ( rc == -1 )
-    {
-      throw socket_error_exception();
-    }
-    else if( rc != remaining)
-    {
-       remaining -= rc;
-       position += rc;
-    }
-    else break;
+     remaining -= rc;
+     position += rc;
   }
 }
 
-void network::recv(int socketFD, message &msg)
+void protocol::recv(int socketFD, message &msg)
 {
   unsigned int totalSize = readHeader(socketFD);
   readBody(socketFD, msg, totalSize);
 }
 
-void network::send(int socketFD, unsigned char* data, unsigned int size)
+void protocol::send(int socketFD, unsigned char* data, unsigned int size)
 {
-  int totalSize = sizeof(int) + size;
+  int totalSize = HEADER_SIZE + size;
 
-  unsigned char buffer[totalSize];
-  memcpy(buffer, &totalSize, sizeof(totalSize));
-  memcpy(buffer + sizeof(totalSize), data, size);
- 
-  int remaining = totalSize; 
-  unsigned char* position = buffer;
-
-  while(true)
-  {
-    int rc = write(socketFD, position, remaining);
-
-    if ( rc == 0 )
-    {
-      throw socket_closed_exception();
-    }
-    else if ( rc == -1 )
-    {
-      throw socket_error_exception();
-    }
-    else if( rc != remaining)
-    {
-       remaining -= rc;
-       position += rc;
-    }
-    else break;
-  }
+  network::writeData(socketFD, (unsigned char*)&totalSize, HEADER_SIZE); 
+  network::writeAllData(socketFD, data, size); 
 }
+
+int network::readData(int socketFD, unsigned char* data, int size)
+{
+  int rc = read(socketFD, data, size);
+
+  if ( rc == 0 )
+  {
+    throw socket_closed_exception();
+  }
+  else if ( rc == -1 )
+  {
+    throw socket_error_exception();
+  }
+  return rc;
+}
+
+int network::writeData(int socketFD, unsigned char* data, int size)
+{
+  int rc = write(socketFD, data, size);
+
+  if ( rc == 0 )
+  {
+    throw socket_closed_exception();
+  }
+  else if ( rc == -1 )
+  {
+    throw socket_error_exception();
+  }
+  return rc;
+}
+
+void network::writeAllData(int socketFD, unsigned char* data, int size)
+{
+  int remaining = size; 
+  unsigned char* position = data;
+
+  int rc;
+  while((rc = network::writeData(socketFD, position, remaining)) != remaining)
+  {
+    remaining -= rc;
+    position += rc;
+  }
+} 
 
 }

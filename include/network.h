@@ -16,7 +16,7 @@ struct message
   void allocate(unsigned int msgSize);
 };
 
-class network
+class protocol
 {
 public:
   static void recv(int socketFD, message &msg);
@@ -29,6 +29,16 @@ private:
   static unsigned int readHeader(int socketFD);
 
   static void readBody(int socketFD, message &msg, unsigned int totalSize);
+};
+
+class network
+{
+public:
+  static int readData(int socketFD, unsigned char* data, int size); 
+
+  static int writeData(int socketFD, unsigned char* data, int size); 
+
+  static void writeAllData(int socketFD, unsigned char* data, int size); 
 };
 
 }
