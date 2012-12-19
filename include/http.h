@@ -4,40 +4,29 @@
 #include <string>
 #include <sstream>
 #include <map>
-#include "exceptions.h"
 #include "filereader.h"
+#include "network.h"
 
 namespace alm
 {
 
-template<typename handler>
 class http
 {
 public:
-  http(handler &handler_) : m_handler(handler_) { }
-
-  ~http() { }
-
-  void addClient(int newSocketFD, sockaddr_in clientAddr) { }
-
-  void removeClient(int socketFD) { }
-
-  void recvMessage(int socketFD)
+  template<typename handler>
+  static void request(int socketFD, unsigned char* data,
+                      unsigned int size, handler &_handler)
   {
-    int rc =read(socketFD, m_input, INPUT_SIZE);
-    if ( rc == 0 )
+    std::stringstream ss;
+    ss.write((const char*)data, size);
+
+    std::string cmd;
+    std::string url;
+    ss >> cmd >> url;
+
+    if(allowed(socketFD, url))
     {
-      throw socket_closed_exception();
-    }
-    else if ( rc == -1 )
-    {
-      throw socket_error_exception();
-    }
-    else if( rc > 0)
-    {
-      std::stringstream ss;
-      ss.write(m_input, rc);
-      request(socketFD, ss);
+      processRequest(socketFD, cmd, url, ss, _handler);
     }
   }
 
@@ -56,39 +45,23 @@ public:
   }
 
 private:
-  static const int INPUT_SIZE = 8096;
-
-  handler& m_handler;
-
-  char m_input[INPUT_SIZE];
-
   static std::map<std::string, std::string> m_extensions;
 
-  void request(int socketFD, std::stringstream &ss)
-  {
-    std::string cmd;
-    std::string url;
-    ss >> cmd >> url;
-
-    if(allowed(socketFD, url))
-    {
-      processRequest(socketFD, cmd, url, ss);
-    }
-  }
-
-  void processRequest(int socketFD, std::string &cmd,
-                      std::string &url, std::stringstream &ss)
+  template<typename handler>
+  static void processRequest(int socketFD, std::string &cmd,
+                             std::string &url, std::stringstream &ss,
+                             handler &_handler)
   {
     if(cmd.compare("GET") == 0)
     {
-      m_handler.doGet(socketFD, url);
+      _handler.doGet(socketFD, url);
     }
     else if(cmd.compare("POST") == 0)
     {
       std::string tmp = ss.str();
       std::string message = 
         tmp.substr(tmp.find_last_of("\n") + 1, tmp.length());
-      m_handler.doPost(socketFD, url, message);
+      _handler.doPost(socketFD, url, message);
     }
     else
     {
@@ -129,7 +102,7 @@ private:
     write(socketFD, ss.str().c_str(), ss.str().length());
   }
 
-  bool allowed(int socketFD, const std::string &url)
+  static bool allowed(int socketFD, const std::string &url)
   {
     bool result = true;
 
@@ -159,8 +132,7 @@ private:
   }
 };
 
-template<typename handler>
-std::map<std::string, std::string> http<handler>::m_extensions =
+std::map<std::string, std::string> http::m_extensions =
     {
     {"gif", "image/gif"},
     {"jpg", "image/jpg"},

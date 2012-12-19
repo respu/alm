@@ -5,13 +5,14 @@
 #include "thread_pool.h"
 #include "tcp_server.h"
 #include "http.h"
+#include "network.h"
 
-class handler
+class http_handler
 {
 public:
-  handler(const char* basedir) :pool(2), base(basedir) { }
+  http_handler(const char* basedir) :pool(2), base(basedir) { }
 
-  ~handler() { }
+  ~http_handler() { }
 
   void doGet(int socketFD, const std::string &url)
   {
@@ -20,7 +21,7 @@ public:
     std::string fileName = base + url;
     pool.submit([&, socketFD, fileName]
       {
-        alm::http<handler>::responseFile(socketFD, fileName);
+        alm::http::responseFile(socketFD, fileName);
       });
   }
 
@@ -32,7 +33,7 @@ public:
     std::string fileName = base + url;
     pool.submit([&, socketFD, fileName]
       {
-        alm::http<handler>::responseFile(socketFD, fileName);
+        alm::http::responseFile(socketFD, fileName);
       });
   }
 
@@ -42,12 +43,41 @@ private:
   std::string base;
 };
 
+class http_processor
+{
+public:
+  http_processor()
+    : m_handler("/home/alem/Workspace/web/")
+  {
+  }
+
+  void addClient(int newSocketFD, sockaddr_in clientAddr) { }
+
+  void removeClient(int socketFD) { }
+
+  void recvMessage(int socketFD)
+  {
+    int rc = alm::network::readData(socketFD, m_buffer, BLOCK);
+    if( rc > 0)
+    {
+      alm::http::request(socketFD, m_buffer, rc, m_handler);
+    }
+  }
+
+private:
+  static const short BLOCK = 16384;
+
+  unsigned char m_buffer[BLOCK];
+
+  http_handler m_handler;
+};
+
+
 int main(void)
 {
-  handler p("/home/alem/Workspace/web/");
-  alm::http<handler> http_p(p);
-  alm::tcp_server<alm::http<handler>> server;
-  server.start(1100, http_p, 5000);
+  http_processor processor;
+  alm::tcp_server<http_processor> server;
+  server.start(1100, processor, 5000);
 
   std::string line;
   while (std::getline(std::cin, line))

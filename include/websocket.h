@@ -77,21 +77,40 @@ public:
 
   void recvMessage(int socketFD)
   {
-    unsigned char input[BLOCK];
-    int rc = alm::network::readData(socketFD, input, BLOCK);
+    int rc = alm::network::readData(socketFD, m_buffer, BLOCK);
     if( rc > 0)
     {
-      request(socketFD, input, rc);
+      request(socketFD, m_buffer, rc);
     }
   }
+
+  static void writeFrame(int socketFD, unsigned char* data,
+                         unsigned long long size, char opcode)
+  {
+    unsigned char header[10];
+    unsigned int header_length = writeFrameHeader(header, data, size, opcode);
+
+    alm::network::writeData(socketFD, header, header_length);
+    alm::network::writeAllData(socketFD, data, size);
+  }
+
+private:
+  static const short BLOCK = 16384;
+
+  static const std::string MAGIC_KEY;
+
+  static const std::string SEC_WEBSOCKET_KEY;
+
+  handler& m_handler;
+
+  unsigned char m_buffer[BLOCK];
 
   void request(int socketFD, unsigned char* data, unsigned int size)
   {
     websocket_conn status = m_handler.getClientStatus(socketFD);
     if(status == CONNECTING)
     {
-      handshake(socketFD, data, size);
-      m_handler.addClient(socketFD, OPEN);
+      processRequest(socketFD, data, size); 
     }
     else if(status == OPEN)
     {
@@ -99,14 +118,25 @@ public:
     }
   }
 
-  std::string getKey(std::stringstream &ss)
+  void processRequest(int socketFD, unsigned char* data, unsigned int size)
   {
-    std::string request = ss.str();
+    std::string rqst((const char*)data, size);
+    if(rqst.find(SEC_WEBSOCKET_KEY) != std::string::npos)
+    {
+      handshake(socketFD, rqst);
+    }
+    else
+    {
+      m_handler.processHttp(socketFD, data, size);
+    } 
+  }
 
-    int line = request.find("Sec-WebSocket-Key");
-    int start = request.find(":", line) + 2;
-    int end = request.find("\r", start);
-    return request.substr(start, end-start);
+  std::string getKey(std::string &rqst)
+  {
+    int line = rqst.find(SEC_WEBSOCKET_KEY);
+    int start = rqst.find(":", line) + 2;
+    int end = rqst.find("\r", start);
+    return rqst.substr(start, end-start);
   }
 
   std::string hashKey(std::string &key)
@@ -118,12 +148,9 @@ public:
     return alm::base64::encode(hashed);
   }
 
-  void handshake(int socketFD, unsigned char* data, unsigned int size)
+  void handshake(int socketFD, std::string &rqst)
   {
-    std::stringstream ss;
-    ss.write((const char*)data, size);
-
-    std::string key = getKey(ss);
+    std::string key = getKey(rqst);
     std::string hashedkey =  hashKey(key);
 
     std::stringstream response;
@@ -136,6 +163,8 @@ public:
     std::string ack = response.str();
 
     write(socketFD, ack.c_str(), ack.length());
+
+    m_handler.addClient(socketFD, OPEN);
   }
 
   void readFrames(int socketFD, unsigned char* data, unsigned int size)
@@ -150,12 +179,11 @@ public:
 
     while(frame.data.size() < frame.header.data_length_ext)
     {
-      unsigned char buffer[BLOCK];
-      int rc =read(socketFD, buffer, BLOCK);
-      maskIndex = parseFramePayload(buffer, rc, frame, maskIndex);
+      int rc =read(socketFD, m_buffer, BLOCK);
+      maskIndex = parseFramePayload(m_buffer, rc, frame, maskIndex);
     }
 
-    m_handler.doFrame(socketFD, frame);
+    m_handler.processFrame(socketFD, frame);
   }
 
   void parseFrameHeader(unsigned char* data, unsigned int size,
@@ -250,27 +278,13 @@ public:
 
     return header_length;
   }
-
-  static void writeFrame(int socketFD, unsigned char* data,
-                         unsigned long long size, char opcode)
-  {
-    unsigned char header[10];
-    unsigned int header_length = writeFrameHeader(header, data, size, opcode);
-
-    alm::network::writeData(socketFD, header, header_length);
-    alm::network::writeAllData(socketFD, data, size);
-  }
-
-private:
-  static const short BLOCK = 16384;
-
-  static const std::string MAGIC_KEY;
-
-  handler& m_handler;
 };
 
 template<typename handler>
 const std::string websocket<handler>::MAGIC_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+
+template<typename handler>
+const std::string websocket<handler>::SEC_WEBSOCKET_KEY = "Sec-WebSocket-Key";
 
 }
 #endif

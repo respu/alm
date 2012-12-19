@@ -16,7 +16,7 @@
 class http_handler
 {
 public:
-  http_handler(const char* basedir) :pool(2), base(basedir) { }
+  http_handler(const char* basedir) : base(basedir) { }
 
   ~http_handler() { }
 
@@ -25,10 +25,7 @@ public:
     std::cout << "URL: " << url << std::endl;
 
     std::string fileName = base + url;
-    pool.submit([&, socketFD, fileName]
-      {
-        alm::http<http_handler>::responseFile(socketFD, fileName);
-      });
+    alm::http::responseFile(socketFD, fileName);
   }
 
   void doPost(int socketFD, const std::string &url, const std::string &message)
@@ -37,22 +34,20 @@ public:
     std::cout << "Message: " << message << std::endl;
 
     std::string fileName = base + url;
-    pool.submit([&, socketFD, fileName]
-      {
-        alm::http<http_handler>::responseFile(socketFD, fileName);
-      });
+    alm::http::responseFile(socketFD, fileName);
   }
 
 private:
-  alm::thread_pool pool;
-
   std::string base;
 };
 
 class ws_handler
 {
 public:
-  ws_handler():pool(2){}
+  ws_handler()
+    : m_pool(2), m_http_handler("/home/alem/Workspace/web/")
+  {
+  }
 
   void addClient(int newSocketFD, alm::websocket_conn status)
   {
@@ -69,7 +64,7 @@ public:
     return m_clients.find(socketFD);
   }
 
-  void doFrame(int socketFD, alm::websocket_frame &frame)
+  void processFrame(int socketFD, alm::websocket_frame &frame)
   {
     alm::websocket_frame m(std::move(frame));
 
@@ -81,24 +76,25 @@ public:
                                            frame.header.opcode);
   }
 
+  void processHttp(int socketFD, unsigned char* data, unsigned int size)
+  {
+    alm::http::request(socketFD, data, size, m_http_handler); 
+  }
+
 private:
-  alm::thread_pool pool;
+  alm::thread_pool                        m_pool;
 
   alm::safe_map<int, alm::websocket_conn> m_clients;
 
+  http_handler                            m_http_handler;
 };
 
 int main(void)
 {
-  http_handler p("/home/alem/Workspace/web/");
-  alm::http<http_handler> http_p(p);
-  alm::tcp_server<alm::http<http_handler>> http_server;
-  http_server.start(1100, http_p, 5000);
-
   ws_handler handler;
-  alm::websocket<ws_handler> websocket_p(handler);
+  alm::websocket<ws_handler> protocol(handler);
   alm::tcp_server<alm::websocket<ws_handler>> websocket_server;
-  websocket_server.start(1101, websocket_p, 5000);
+  websocket_server.start(1100, protocol, 5000);
 
   std::string line;
   while (std::getline(std::cin, line))
@@ -110,7 +106,6 @@ int main(void)
   }
 
   websocket_server.stop();
-  http_server.stop();
 }
 
 
