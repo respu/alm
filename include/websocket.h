@@ -14,7 +14,6 @@
 namespace alm
 {
 
-enum websocket_conn { CONNECTING, OPEN };
 
 struct websocket_frame_header
 {
@@ -56,99 +55,12 @@ struct websocket_frame
   websocket_frame& operator= (const websocket_frame &other) = delete;
 };
 
-template<typename handler>
 class websocket
 {
 public:
-  websocket(handler& h)
-    : m_handler(h)
-  {
-  }
-
-  void addClient(int newSocketFD, sockaddr_in clientAddr)
-  {
-    m_handler.addClient(newSocketFD, CONNECTING); 
-  }
-
-  void removeClient(int socketFD)
-  {
-    m_handler.removeClient(socketFD);
-  }
-
-  void recvMessage(int socketFD)
-  {
-    int rc = alm::network::readData(socketFD, m_buffer, BLOCK);
-    if( rc > 0)
-    {
-      request(socketFD, m_buffer, rc);
-    }
-  }
-
-  static void writeFrame(int socketFD, unsigned char* data,
-                         unsigned long long size, char opcode)
-  {
-    unsigned char header[10];
-    unsigned int header_length = writeFrameHeader(header, data, size, opcode);
-
-    alm::network::writeData(socketFD, header, header_length);
-    alm::network::writeAllData(socketFD, data, size);
-  }
-
-private:
-  static const short BLOCK = 16384;
-
-  static const std::string MAGIC_KEY;
-
   static const std::string SEC_WEBSOCKET_KEY;
 
-  handler& m_handler;
-
-  unsigned char m_buffer[BLOCK];
-
-  void request(int socketFD, unsigned char* data, unsigned int size)
-  {
-    websocket_conn status = m_handler.getClientStatus(socketFD);
-    if(status == CONNECTING)
-    {
-      processRequest(socketFD, data, size); 
-    }
-    else if(status == OPEN)
-    {
-      readFrames(socketFD, data, size);
-    }
-  }
-
-  void processRequest(int socketFD, unsigned char* data, unsigned int size)
-  {
-    std::string rqst((const char*)data, size);
-    if(rqst.find(SEC_WEBSOCKET_KEY) != std::string::npos)
-    {
-      handshake(socketFD, rqst);
-    }
-    else
-    {
-      m_handler.processHttp(socketFD, data, size);
-    } 
-  }
-
-  std::string getKey(std::string &rqst)
-  {
-    int line = rqst.find(SEC_WEBSOCKET_KEY);
-    int start = rqst.find(":", line) + 2;
-    int end = rqst.find("\r", start);
-    return rqst.substr(start, end-start);
-  }
-
-  std::string hashKey(std::string &key)
-  {
-    std::string combined = key + MAGIC_KEY;
-
-    std::string hashed = alm::sha1::digest(combined);
-
-    return alm::base64::encode(hashed);
-  }
-
-  void handshake(int socketFD, std::string &rqst)
+  static void handshake(int socketFD, std::string &rqst)
   {
     std::string key = getKey(rqst);
     std::string hashedkey =  hashKey(key);
@@ -163,14 +75,11 @@ private:
     std::string ack = response.str();
 
     write(socketFD, ack.c_str(), ack.length());
-
-    m_handler.addClient(socketFD, OPEN);
   }
 
-  void readFrames(int socketFD, unsigned char* data, unsigned int size)
+  static void readFrame(int socketFD, unsigned char* data, unsigned int size,
+                        websocket_frame &frame)
   {
-    websocket_frame frame;
-
     parseFrameHeader(data, size, frame.header);
 
     unsigned long long maskIndex =
@@ -179,14 +88,41 @@ private:
 
     while(frame.data.size() < frame.header.data_length_ext)
     {
-      int rc =read(socketFD, m_buffer, BLOCK);
-      maskIndex = parseFramePayload(m_buffer, rc, frame, maskIndex);
+      int rc =read(socketFD, data, size);
+      maskIndex = parseFramePayload(data, rc, frame, maskIndex);
     }
+  }
+  static void response(int socketFD, unsigned char* data,
+                       unsigned long long size, char opcode)
+  {
+    unsigned char header[10];
+    unsigned int header_length = writeFrameHeader(header, data, size, opcode);
 
-    m_handler.processFrame(socketFD, frame);
+    alm::network::writeData(socketFD, header, header_length);
+    alm::network::writeAllData(socketFD, data, size);
   }
 
-  void parseFrameHeader(unsigned char* data, unsigned int size,
+private:
+  static const std::string MAGIC_KEY;
+
+  static std::string getKey(std::string &rqst)
+  {
+    int line = rqst.find(SEC_WEBSOCKET_KEY);
+    int start = rqst.find(":", line) + 2;
+    int end = rqst.find("\r", start);
+    return rqst.substr(start, end-start);
+  }
+
+ static std::string hashKey(std::string &key)
+  {
+    std::string combined = key + MAGIC_KEY;
+
+    std::string hashed = alm::sha1::digest(combined);
+
+    return alm::base64::encode(hashed);
+  }
+
+  static void parseFrameHeader(unsigned char* data, unsigned int size,
                         websocket_frame_header &header)
   {
     if(size < 3)
@@ -225,7 +161,7 @@ private:
     }
   }
 
-  unsigned long long parseFramePayload(unsigned char* data,
+  static unsigned long long parseFramePayload(unsigned char* data,
                                        unsigned int size, websocket_frame &frame,
                                        unsigned long long maskIndex)
   {
@@ -280,11 +216,9 @@ private:
   }
 };
 
-template<typename handler>
-const std::string websocket<handler>::MAGIC_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+const std::string websocket::MAGIC_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
-template<typename handler>
-const std::string websocket<handler>::SEC_WEBSOCKET_KEY = "Sec-WebSocket-Key";
+const std::string websocket::SEC_WEBSOCKET_KEY = "Sec-WebSocket-Key";
 
 }
 #endif

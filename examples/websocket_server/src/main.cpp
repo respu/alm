@@ -22,17 +22,12 @@ public:
 
   void doGet(int socketFD, const std::string &url)
   {
-    std::cout << "URL: " << url << std::endl;
-
     std::string fileName = base + url;
     alm::http::responseFile(socketFD, fileName);
   }
 
   void doPost(int socketFD, const std::string &url, const std::string &message)
   {
-    std::cout << "URL: " << url << std::endl;
-    std::cout << "Message: " << message << std::endl;
-
     std::string fileName = base + url;
     alm::http::responseFile(socketFD, fileName);
   }
@@ -41,60 +36,104 @@ private:
   std::string base;
 };
 
-class ws_handler
+class websocket_handler
 {
 public:
-  ws_handler()
-    : m_pool(2), m_http_handler("/home/alem/Workspace/web/")
+  websocket_handler()
   {
+    memset(m_clients, -1, sizeof(m_clients));
   }
 
-  void addClient(int newSocketFD, alm::websocket_conn status)
+  void addClient(int newSocketFD)
   {
-    m_clients.insert(newSocketFD, status); 
+    m_clients[newSocketFD] = newSocketFD;
   }
 
   void removeClient(int socketFD)
   {
-    m_clients.erase(socketFD, [] (int){}); 
+    m_clients[socketFD] = -1;
   }
 
-  alm::websocket_conn getClientStatus(int socketFD)
+  bool exists(int socketFD)
   {
-    return m_clients.find(socketFD);
+    return m_clients[socketFD] >= 0;
   }
 
   void processFrame(int socketFD, alm::websocket_frame &frame)
   {
     alm::websocket_frame m(std::move(frame));
 
-    std::cout << "Frame: " << m.data.size() <<  std::endl;
-    std::cout.write((const char*)m.data.data(), m.data.size());
-    std::cout << std::endl;
-
-    alm::websocket<ws_handler>::writeFrame(socketFD, m.data.data(), m.data.size(),
-                                           frame.header.opcode);
-  }
-
-  void processHttp(int socketFD, unsigned char* data, unsigned int size)
-  {
-    alm::http::request(socketFD, data, size, m_http_handler); 
+    alm::websocket::response(socketFD, m.data.data(), m.data.size(),
+                             frame.header.opcode);
   }
 
 private:
-  alm::thread_pool                        m_pool;
+  short m_clients[200];
 
-  alm::safe_map<int, alm::websocket_conn> m_clients;
+};
 
-  http_handler                            m_http_handler;
+
+class ws_processor
+{
+public:
+  ws_processor()
+    : m_pool(2), m_http_handler("/home/alem/Workspace/web/")
+  {
+  }
+
+  void addClient(int newSocketFD, sockaddr_in clientAddr)
+  {
+  }
+
+  void removeClient(int socketFD)
+  {
+    m_websocket_handler.removeClient(socketFD); 
+  }
+
+  void recvMessage(int socketFD)
+  {
+    int rc = alm::network::readData(socketFD, m_buffer, BLOCK);
+    if( rc > 0)
+    {
+      if(m_websocket_handler.exists(socketFD))
+      {
+        alm::websocket_frame frame;
+        alm::websocket::readFrame(socketFD, m_buffer, rc, frame);
+        m_websocket_handler.processFrame(socketFD, frame);
+      }
+      else
+      {
+        std::string rqst((const char*)m_buffer, rc);
+        if(rqst.find(alm::websocket::SEC_WEBSOCKET_KEY) != std::string::npos)
+        {
+          alm::websocket::handshake(socketFD, rqst);
+          m_websocket_handler.addClient(socketFD);
+        }
+        else
+        {
+          alm::http::request(socketFD, m_buffer, rc, m_http_handler); 
+        }
+      }
+    }
+  }
+
+private:
+  static const unsigned short BLOCK = 16384;
+
+  unsigned char     m_buffer[BLOCK];
+
+  alm::thread_pool  m_pool;
+
+  http_handler      m_http_handler;
+
+  websocket_handler m_websocket_handler;
 };
 
 int main(void)
 {
-  ws_handler handler;
-  alm::websocket<ws_handler> protocol(handler);
-  alm::tcp_server<alm::websocket<ws_handler>> websocket_server;
-  websocket_server.start(1100, protocol, 5000);
+  ws_processor processor;
+  alm::tcp_server<ws_processor> websocket_server;
+  websocket_server.start(1100, processor, 5000);
 
   std::string line;
   while (std::getline(std::cin, line))
