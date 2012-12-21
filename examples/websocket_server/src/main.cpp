@@ -12,6 +12,7 @@
 #include "base64.h"
 #include "ibstream.h"
 #include "websocket.h"
+#include "network.h"
 
 class http_handler
 {
