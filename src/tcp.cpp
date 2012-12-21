@@ -1,8 +1,8 @@
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <sys/poll.h>
 #include "exceptions.h"
 #include "tcp.h"
+#include "endianess.h"
 
 namespace alm
 {
@@ -17,7 +17,7 @@ int tcp::createSocket(unsigned short port, sockaddr_in &sockAddr)
   }
 
   sockAddr.sin_family = AF_INET;
-  sockAddr.sin_port = htons(port);
+  sockAddr.sin_port = big::ushort(port);
   sockAddr.sin_addr.s_addr = INADDR_ANY;
 
   return newSocket;

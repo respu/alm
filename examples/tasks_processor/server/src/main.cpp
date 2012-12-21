@@ -4,13 +4,13 @@
 #include <map>
 #include <sstream>
 #include <atomic>
-#include <arpa/inet.h>
 #include "tcp_client.h"
 #include "tcp_server.h"
 #include "network.h"
 #include "thread_pool.h"
 #include "safe_map.h"
 #include "ibstream.h"
+#include "endianess.h"
 
 enum task_type { CREATE, PAUSE, RESUME, STOP};
 
@@ -42,7 +42,7 @@ public:
   void addClient(int newSocketFD, sockaddr_in clientAddr)
   {
     std::cout << "ip: " << inet_ntoa(clientAddr.sin_addr) <<
-		" port: " << ntohs(clientAddr.sin_port) <<
+		" port: " << alm::little::ushort(clientAddr.sin_port) <<
 		" socketFD: " << newSocketFD << std::endl;
   }
 
@@ -68,9 +68,9 @@ public:
   {
     alm::ibstream input;
     input.write(msg.data,msg.size);
-    int32_t networkType;
+    unsigned int networkType;
     input >> networkType; 
-    task_type type = (task_type)ntohl(networkType);
+    task_type type = (task_type)alm::little::uint(networkType);
     if(type == CREATE)
     {
       createRequest(socketFD);
@@ -110,7 +110,7 @@ public:
   {
     int32_t requestID;
     input >> requestID;
-    unsigned int id = ntohl(requestID);
+    unsigned int id = alm::little::uint(requestID);
     try
     {
       requests.find(id)->running = false;

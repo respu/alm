@@ -1,8 +1,8 @@
 #include <string.h>
 #include <string>
 #include <sstream>
-#include <arpa/inet.h>
 #include "sha1.h"
+#include "endianess.h"
 
 namespace alm
 {
@@ -231,7 +231,7 @@ std::string sha1::result()
     unsigned bigendian[5]; 
     for(int i=0; i<5; i++)
     {
-      bigendian[i] = htonl(H[i]);
+      bigendian[i] = big::uint(H[i]);
     }
 
     char buffer[20];

@@ -4,25 +4,25 @@
 namespace alm
 {
 
-struct big
+class little
 {
-  static unsigned int translate(unsigned int value);
+public:
+  static unsigned short ushort(unsigned short value);
+
+  static unsigned int uint(unsigned int value);
+
+  static unsigned long long ullong(unsigned long long value);
 };
 
-struct little
+class big
 {
-  static unsigned int translate(unsigned int value);
-};
+public:
+  static unsigned short ushort(unsigned short value);
 
-struct same
-{
-  template<typename T>
-  static T translate(T value)
-  {
-    return value;
-  }
-};
+  static unsigned int uint(unsigned int value);
 
+  static unsigned long long ullong(unsigned long long value);
+};
 }
 
 #endif

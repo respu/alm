@@ -1,7 +1,6 @@
 #include <string>
 #include <sstream>
 #include <string.h>
-#include <arpa/inet.h>
 #include <stdint.h>
 #include "exceptions.h"
 #include "sha1.h"
@@ -9,6 +8,7 @@
 #include "ibstream.h"
 #include "network.h"
 #include "websocket.h"
+#include "endianess.h"
 
 namespace alm
 {
@@ -114,13 +114,13 @@ void websocket::parseFrameHeader(unsigned char* data, unsigned int size,
   if(header.data_length == 126)
   {
     unsigned short network_length = *((unsigned short*)(data + header.header_length));
-    header.data_length_ext = ntohs(network_length);  
+    header.data_length_ext = little::ushort(network_length);  
     header.header_length += sizeof(network_length);
   }
   else if(header.data_length == 127)
   {
     unsigned long long network_length = *((unsigned long long*)(data + header.header_length));
-    header.data_length_ext = be64toh(network_length);
+    header.data_length_ext = little::ullong(network_length);
     header.header_length += sizeof(network_length);
   }
 
@@ -169,7 +169,7 @@ unsigned int websocket::writeFrameHeader(unsigned char* header, unsigned char* d
     header[header_length++] = 126; //16 bit length
 
     unsigned short host_length = size;
-    unsigned short network_length = htons(host_length);
+    unsigned short network_length = big::ushort(host_length);
     memcpy(header + header_length, &network_length, sizeof(network_length));
     header_length += sizeof(network_length);
   }
@@ -178,7 +178,7 @@ unsigned int websocket::writeFrameHeader(unsigned char* header, unsigned char* d
     header[header_length++] = 127; //64 bit length
 
     unsigned long long host_length = size;
-    unsigned long long network_length = htobe64(host_length);
+    unsigned long long network_length = big::ullong(host_length);
     memcpy(header + header_length, &network_length, sizeof(network_length));
     header_length += sizeof(network_length);
   }

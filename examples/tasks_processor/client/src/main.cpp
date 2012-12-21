@@ -2,10 +2,10 @@
 #include <string.h>
 #include <iostream>
 #include <sstream>
-#include <arpa/inet.h>
 #include "tcp_client.h"
 #include "network.h"
 #include "obstream.h"
+#include "endianess.h"
 
 enum task_type { CREATE, PAUSE, RESUME, STOP};
 
@@ -21,7 +21,7 @@ struct create_task : base_task
 
   void serialize(alm::obstream &output)
   {
-    int32_t networkType = htonl(type);
+    unsigned int networkType = alm::big::uint(type);
     output << networkType;
   }
 };
@@ -34,8 +34,8 @@ struct stop_task : base_task
 
   void serialize(alm::obstream &output)
   {
-    int32_t networkType = htonl(type);
-    uint32_t networkRequestID = htonl(requestID);
+    unsigned int networkType = alm::big::uint(type);
+    unsigned int networkRequestID = alm::big::uint(requestID);
 
     output << networkType << networkRequestID;
   }
