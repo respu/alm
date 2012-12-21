@@ -55,6 +55,8 @@ private:
 
   static std::string getKey(std::string &rqst);
 
+  static std::string bigEndian(std::string &hashed);
+
   static std::string hashKey(std::string &key);
   
   static void parseFrameHeader(unsigned char* data, unsigned int size,

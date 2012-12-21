@@ -7,7 +7,7 @@
 namespace alm
 {
 
-unsigned sha1::H[5] =
+unsigned int sha1::H[5] =
    {
     0x67452301,
     0xEFCDAB89,
@@ -16,8 +16,8 @@ unsigned sha1::H[5] =
     0xC3D2E1F0 
    };
 
-unsigned sha1::m_lengthLow = 0;
-unsigned sha1::m_lengthHigh = 0;
+unsigned int sha1::m_lengthLow = 0;
+unsigned int sha1::m_lengthHigh = 0;
 
 unsigned char sha1::m_messageBlock[64];
 int sha1::m_messageBlockIndex = 0;
@@ -37,7 +37,7 @@ m_messageBlockIndex = 0;
 }
 
 void sha1::input(const unsigned char *message_array,
-                 unsigned length)
+                 unsigned int length)
 {
     if (!length)
     {
@@ -96,16 +96,16 @@ std::string sha1::hexDigest(std::string &input)
 
 void sha1::processMessageBlock()
 {
-    const unsigned K[] =    {
+    const unsigned int K[] = {
                                 0x5A827999,
                                 0x6ED9EBA1,
                                 0x8F1BBCDC,
                                 0xCA62C1D6
-                            };
-    int         t;
-    unsigned    temp;
-    unsigned    W[80];
-    unsigned    A, B, C, D, E;
+                             };
+    int          t;
+    unsigned int temp;
+    unsigned int W[80];
+    unsigned int A, B, C, D, E;
 
     for(t = 0; t < 16; t++)
     {
@@ -219,7 +219,7 @@ void sha1::padMessage()
     processMessageBlock();
 }
 
-unsigned sha1::circularShift(int bits, unsigned word)
+unsigned int sha1::circularShift(int bits, unsigned int word)
 {
     return ((word << bits) & 0xFFFFFFFF) | ((word & 0xFFFFFFFF) >> (32-bits));
 }
@@ -228,15 +228,9 @@ std::string sha1::result()
 {
     padMessage();
 
-    unsigned bigendian[5]; 
-    for(int i=0; i<5; i++)
-    {
-      bigendian[i] = big::uint(H[i]);
-    }
-
-    char buffer[20];
-    memcpy(buffer, bigendian, sizeof(unsigned) * 5);
-    return std::string(buffer);
+    unsigned char buffer[sizeof(H)];
+    memcpy(buffer, H, sizeof(H));
+    return std::string((const char*)buffer, sizeof(buffer));
 }
 
 std::string sha1::hexResult()

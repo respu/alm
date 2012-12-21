@@ -84,11 +84,28 @@ std::string websocket::getKey(std::string &rqst)
   return rqst.substr(start, end-start);
 }
 
+std::string websocket::bigEndian(std::string &hashed)
+{
+  const char* c = hashed.c_str();
+  unsigned int result[5];
+  for(int i=0; i<5; ++i)
+  {
+    result[i] = *((unsigned int*)(c + i*4));
+
+    result[i] = big::uint(result[i]);
+  }
+  unsigned char buffer[sizeof(result)];
+  memcpy(buffer, result, sizeof(result));
+  return std::string((const char*)buffer, sizeof(buffer));
+}
+
 std::string websocket::hashKey(std::string &key)
 {
   std::string combined = key + MAGIC_KEY;
 
-  std::string hashed = alm::sha1::digest(combined);
+  std::string hashedLittle = alm::sha1::digest(combined);
+
+  std::string hashed = bigEndian(hashedLittle);
 
   return alm::base64::encode(hashed);
 }

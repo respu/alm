@@ -19,7 +19,7 @@ public:
 
 private:
   static void input(const unsigned char *message_array,
-                    unsigned length);
+                    unsigned int length);
 
   static std::string result();
 
@@ -33,12 +33,12 @@ private:
 
   static void reset();
 
-  static inline unsigned circularShift(int bits, unsigned word);
+  static inline unsigned int circularShift(int bits, unsigned int word);
 
-  static unsigned H[5];
+  static unsigned int H[5];
 
-  static unsigned m_lengthLow;
-  static unsigned m_lengthHigh;
+  static unsigned int m_lengthLow;
+  static unsigned int m_lengthHigh;
 
   static unsigned char m_messageBlock[64];
   static int m_messageBlockIndex;
