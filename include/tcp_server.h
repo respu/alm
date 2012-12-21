@@ -8,16 +8,17 @@
 #include <thread>
 #include <atomic>
 #include "exceptions.h"
+#include "tcp.h"
 
 namespace alm
 {
 
-template<typename processor>
+template<typename handler>
 class tcp_server
 {
 public:
   tcp_server()
-    : m_timeout(0),m_running(false), m_port(0), m_processor(0),
+    : m_timeout(0),m_running(false), m_port(0), m_handler(0),
       m_listenFD(0), m_numSockets(0)
   {
     memset(&m_sockAddr, 0, sizeof(m_sockAddr));
@@ -32,17 +33,17 @@ public:
     stop(); 
   }
 
-  void start(unsigned short port, processor &proc, unsigned int timeout)
+  void start(unsigned short port, handler &_handler, unsigned int timeout)
   {
     m_running = true;
 
     m_port = port;
-    m_processor = &proc;
+    m_handler = &_handler;
     m_timeout = timeout;
 
     init();
 
-    m_thread = std::thread(&tcp_server<processor>::run, this);
+    m_thread = std::thread(&tcp_server<handler>::run, this);
   }
 
   void stop()
@@ -64,7 +65,7 @@ private:
 
   unsigned short m_port;
 
-  processor* m_processor;
+  handler* m_handler;
 
   sockaddr_in m_sockAddr;
 
@@ -78,11 +79,12 @@ private:
 
   void init()
   {
-    createSocket();
+    m_listenFD = tcp::createSocket(m_port, m_sockAddr);
+    addSocket(m_listenFD);
 
-    bindSocket();
+    tcp::bindSocket(m_listenFD, m_sockAddr);
 
-    listenSocket();
+    tcp::listenSocket(m_listenFD);
   }
 
   void addSocket(int newSocketFD)
@@ -92,39 +94,6 @@ private:
     m_numSockets++;
   }
 
-  void createSocket()
-  {
-    m_listenFD = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    addSocket(m_listenFD);
-
-    if(-1 == m_listenFD)
-    {
-      throw create_socket_exception(); 
-    }
-
-    m_sockAddr.sin_family = AF_INET;
-    m_sockAddr.sin_port = htons(m_port);
-    m_sockAddr.sin_addr.s_addr = INADDR_ANY; 
-  }
-
-  void bindSocket()
-  {
-    if(-1 == bind(m_listenFD,(sockaddr*)&m_sockAddr, sizeof(m_sockAddr)))
-    {
-      close(m_listenFD);
-      throw bind_socket_exception();
-    }
-  }
-
-  void listenSocket()
-  {
-    if(-1 == listen(m_listenFD, 10))
-    {
-      close(m_listenFD);
-      throw listen_socket_exception();
-    }
-  }
-
   void run()
   {
     while(m_running)
@@ -132,13 +101,13 @@ private:
       process();
     }
 
-    closeSockets();
+    tcp::closeSockets(m_sockets, m_numSockets);
   }
 
   void process()
   {
     /* Block until input arrives on one or more active sockets. */
-    if(pollSocket())
+    if(tcp::pollSocket(m_sockets, m_numSockets, m_timeout))
     {
       /* Service all the sockets with input pending. */
       int currentSockets = m_numSockets;
@@ -161,23 +130,6 @@ private:
     }
   }
 
-  bool pollSocket()
-  {
-    bool result = false;
-
-    int rc = poll(m_sockets, m_numSockets, m_timeout);
-    if (rc < 0)
-    {
-      throw poll_socket_exception();
-    }
-    else if(rc > 0)
-    {
-      result = true;
-    }
-
-    return result;
-  }
-
   void newClient()
   {
     sockaddr_in clientAddr;
@@ -190,14 +142,14 @@ private:
 
     addSocket(newSocketFD);
 
-    m_processor->addClient(newSocketFD, clientAddr); 
+    m_handler->addClient(newSocketFD, clientAddr); 
   }
 
   void newMessage(int indexFD)
   {
     try
     {
-      m_processor->recvMessage(m_sockets[indexFD].fd);
+      m_handler->recvMessage(m_sockets[indexFD].fd);
     }
     catch(socket_closed_exception &e)
     {
@@ -208,7 +160,7 @@ private:
 
   void removeClient(int indexFD)
   {
-    m_processor->removeClient(m_sockets[indexFD].fd);
+    m_handler->removeClient(m_sockets[indexFD].fd);
 
     close(m_sockets[indexFD].fd);
 
@@ -222,17 +174,6 @@ private:
           m_sockets[j].fd = m_sockets[j+1].fd;
         }
         m_numSockets--;
-      }
-    }
-  }
-
-  void closeSockets()
-  {
-    for(int i = 0; i < m_numSockets; i++)
-    {
-      if(m_sockets[i].fd >= 0)
-      {
-        close(m_sockets[i].fd);
       }
     }
   }
