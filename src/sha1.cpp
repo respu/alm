@@ -2,7 +2,6 @@
 #include <string>
 #include <sstream>
 #include "sha1.h"
-#include "endianess.h"
 
 namespace alm
 {
