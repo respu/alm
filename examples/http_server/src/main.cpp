@@ -14,26 +14,29 @@ public:
 
   ~http_handler() { }
 
-  void doGet(int socketFD, const std::string &url)
+  void process(int socketFD, unsigned char* data, unsigned int size)
   {
-    std::cout << "URL: " << url << std::endl;
+    alm::http_request request;
+    try
+    {
+      alm::http::parseRequest(socketFD, data, size, request);
+    }
+    catch(alm::forbidden_exception &e)
+    {
+      alm::http::forbidden(socketFD);
+    }
 
-    std::string fileName = base + url;
-    pool.submit([&, socketFD, fileName]
+    std::string fileName = base + request.url;
+    pool.submit([socketFD, fileName]
       {
-        alm::http::responseFile(socketFD, fileName);
-      });
-  }
-
-  void doPost(int socketFD, const std::string &url, const std::string &message)
-  {
-    std::cout << "URL: " << url << std::endl;
-    std::cout << "Message: " << message << std::endl;
-
-    std::string fileName = base + url;
-    pool.submit([&, socketFD, fileName]
-      {
-        alm::http::responseFile(socketFD, fileName);
+        try
+        {
+          alm::http::responseFile(socketFD, fileName);
+        }
+        catch(alm::file_not_found_exception &e)
+        {
+          alm::http::notFound(socketFD);
+        }
       });
   }
 
@@ -60,7 +63,7 @@ public:
     int rc = alm::network::readData(socketFD, m_buffer, BLOCK);
     if( rc > 0)
     {
-      alm::http::request(socketFD, m_buffer, rc, m_handler);
+      m_handler.process(socketFD, m_buffer, rc);
     }
   }
 

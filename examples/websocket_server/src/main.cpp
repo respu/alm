@@ -21,16 +21,27 @@ public:
 
   ~http_handler() { }
 
-  void doGet(int socketFD, const std::string &url)
+  void process(int socketFD, unsigned char* data, unsigned int size)
   {
-    std::string fileName = base + url;
-    alm::http::responseFile(socketFD, fileName);
-  }
+    alm::http_request request;
+    try
+    {
+      alm::http::parseRequest(socketFD, data, size, request);
+    }
+    catch(alm::forbidden_exception &e)
+    {
+      alm::http::forbidden(socketFD);
+    }
 
-  void doPost(int socketFD, const std::string &url, const std::string &message)
-  {
-    std::string fileName = base + url;
-    alm::http::responseFile(socketFD, fileName);
+    std::string fileName = base + request.url;
+    try
+    {
+      alm::http::responseFile(socketFD, fileName);
+    }
+    catch(alm::file_not_found_exception &e)
+    {
+      alm::http::notFound(socketFD);
+    }
   }
 
 private:
@@ -99,7 +110,7 @@ public:
       if(m_websocket_handler.exists(socketFD))
       {
         alm::websocket_frame frame;
-        alm::websocket::readFrame(socketFD, m_buffer, rc, frame);
+        alm::websocket::parseFrame(socketFD, m_buffer, rc, frame);
         m_websocket_handler.processFrame(socketFD, frame);
       }
       else
@@ -112,7 +123,7 @@ public:
         }
         else
         {
-          alm::http::request(socketFD, m_buffer, rc, m_http_handler); 
+          m_http_handler.process(socketFD, m_buffer, rc);
         }
       }
     }

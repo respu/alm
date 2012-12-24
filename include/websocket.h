@@ -44,7 +44,7 @@ public:
 
   static void handshake(int socketFD, std::string &rqst);
   
-  static void readFrame(int socketFD, unsigned char* data, unsigned int size,
+  static void parseFrame(int socketFD, unsigned char* data, unsigned int size,
                         websocket_frame &frame);
   
   static void response(int socketFD, unsigned char* data,

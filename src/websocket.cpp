@@ -50,7 +50,7 @@ void websocket::handshake(int socketFD, std::string &rqst)
   write(socketFD, ack.c_str(), ack.length());
 }
 
-void websocket::readFrame(int socketFD, unsigned char* data, unsigned int size,
+void websocket::parseFrame(int socketFD, unsigned char* data, unsigned int size,
 		      websocket_frame &frame)
 {
   parseFrameHeader(data, size, frame.header);
@@ -72,8 +72,8 @@ void websocket::response(int socketFD, unsigned char* data,
   unsigned char header[10];
   unsigned int header_length = writeFrameHeader(header, data, size, opcode);
 
-  alm::network::writeData(socketFD, header, header_length);
-  alm::network::writeAllData(socketFD, data, size);
+  network::writeData(socketFD, header, header_length);
+  network::writeAllData(socketFD, data, size);
 }
 
 std::string websocket::getKey(std::string &rqst)
@@ -103,11 +103,11 @@ std::string websocket::hashKey(std::string &key)
 {
   std::string combined = key + MAGIC_KEY;
 
-  std::string hashedLittle = alm::sha1::digest(combined);
+  std::string hashedLittle = sha1::digest(combined);
 
   std::string hashed = bigEndian(hashedLittle);
 
-  return alm::base64::encode(hashed);
+  return base64::encode(hashed);
 }
 
 void websocket::parseFrameHeader(unsigned char* data, unsigned int size,
@@ -115,7 +115,7 @@ void websocket::parseFrameHeader(unsigned char* data, unsigned int size,
 {
   if(size < 3)
   {
-    throw alm::websocket_incomplete_frame_exception();
+    throw websocket_incomplete_frame_exception();
   }
 
   // 1st byte

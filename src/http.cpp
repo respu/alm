@@ -6,21 +6,69 @@
 #include "network.h"
 #include "http.h"
 
+#include <iostream>
+
 namespace alm
 {
 
+void http::parseRequest(int socketFD, unsigned char* data,
+                 unsigned int size, http_request &request)
+{
+  std::stringstream ss;
+  ss.write((const char*)data, size);
+
+  std::string cmd;
+  ss >> cmd >> request.url;
+
+  if(request.url.find("..") == 0)
+  {
+    throw forbidden_exception();
+  }
+
+  parseParameters(socketFD, cmd, ss, request);
+}
+
+void http::parseParameters(int socketFD, std::string &cmd,
+                    std::stringstream &ss, http_request &request)
+{
+  if(cmd.compare("GET") == 0)
+  {
+    parseGet(socketFD, ss, request);
+  }
+  else if(cmd.compare("POST") == 0)
+  {
+    parsePost(socketFD, ss, request);
+  }
+  else
+  {
+    throw forbidden_exception();
+  }
+}
+
+void http::parseGet(int socketFD, std::stringstream &ss,
+                    http_request &request)
+{
+  std::cout << "GET" << std::endl;
+  std::cout << ss.str() << std::endl;
+}
+
+void http::parsePost(int socketFD, std::stringstream &ss,
+                     http_request &request)
+{
+  std::cout << "POST" << std::endl;
+  std::cout << ss.str() << std::endl;
+}
+
 void http::responseFile(int socketFD, const std::string &fileName)
 {
-  try
-  {
-    filereader reader(fileName.c_str());
-    responseHeader(socketFD, fileName, reader.size());
-    sendFile(socketFD, reader);
-  }
-  catch(file_not_found_exception &e)
-  {
-    notFound(socketFD);
-  }
+  filereader reader(fileName.c_str());
+  
+  responseHeader(socketFD, fileName, reader.size());
+  
+  unsigned char buffer[reader.size()];
+  reader.read(buffer, reader.size());
+  
+  network::writeAllData(socketFD, buffer, reader.size());
 }
 
 void http::responseHeader(int socketFD, const std::string &fileName,
@@ -54,35 +102,6 @@ void http::forbidden(int socketFD)
      << " requested URL, file type or operation is not allowed on"
      << " this simple file webserver.\n</body></html>\n";
   write(socketFD, ss.str().c_str(), ss.str().length());
-}
-
-bool http::allowed(int socketFD, const std::string &url)
-{
-  bool result = true;
-
-  if(url.find("..") == 0)
-  {
-    result = false;
-    forbidden(socketFD);
-  }
-
-  return result;
-}
-
-void http::sendFile(int socketFD, alm::filereader &reader)
-{
-  unsigned char buffer[reader.size()];
-  reader.read(buffer, reader.size());
-
-  int remainingMessageSize = reader.size(); 
-  unsigned char* position = buffer;
-
-  int rc;
-  while((rc = write(socketFD, position, remainingMessageSize)) > 0)
-  {
-    remainingMessageSize = remainingMessageSize - rc;
-    position += rc;
-  } 
 }
 
 std::map<std::string, std::string> http::m_extensions =
