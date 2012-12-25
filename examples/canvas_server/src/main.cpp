@@ -91,7 +91,7 @@ class ws_processor
 {
 public:
   ws_processor()
-    : m_http_handler("/home/alem/Workspace/alm/examples/websocket_server/web/")
+    : m_http_handler("/home/alem/Workspace/alm/examples/canvas_server/web")
   {
   }
 

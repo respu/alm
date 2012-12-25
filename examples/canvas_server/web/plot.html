@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<script type="text/javascript">
+
+//window.requestAnimationFrame = window.webkitRequestAnimationFrame;
+window.requestAnimationFrame = function (callback)
+{
+ return window.setTimeout(callback, 1000);
+};
+
+var begin = 100;
+var end = begin + 10;
+var canvas;
+var ctx;
+
+function drawShape(){
+  
+    // Stroked triangle
+    ctx.beginPath();
+    ctx.moveTo(begin,125);
+    ctx.lineTo(end,125);
+    ctx.stroke();
+	
+	begin+=10;
+	end+=10;
+}
+
+function animate(time) {
+  window.requestAnimationFrame(animate); // Sustain the animation
+  
+  drawShape();
+}
+
+function loop()
+{
+  canvas = document.getElementById('mycanvas');
+  ctx = canvas.getContext('2d');
+  
+  window.requestAnimationFrame(animate);
+}
+
+</script>
+</head>
+<body onload="loop();">
+   <canvas id="mycanvas" width="1000"></canvas>
+</body>
+</html>

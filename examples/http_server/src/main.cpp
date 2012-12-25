@@ -50,7 +50,7 @@ class http_processor
 {
 public:
   http_processor()
-    : m_handler("/home/alem/Workspace/web/")
+    : m_handler("/home/alem/Workspace/alm/examples/http_server/web/")
   {
   }
 
@@ -60,6 +60,8 @@ public:
 
   void recvMessage(int socketFD)
   {
+    // Read request on poll thread from tcp_server.
+    // If it was read from another thread it would fail.
     int rc = alm::network::readData(socketFD, m_buffer, BLOCK);
     if( rc > 0)
     {

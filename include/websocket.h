@@ -2,6 +2,7 @@
 #define __ALM__WEBSOCKET__
 
 #include <string>
+#include "ibstream.h"
 
 namespace alm
 {
@@ -28,7 +29,7 @@ struct websocket_frame_header
 struct websocket_frame
 {
   websocket_frame_header header;
-  alm::ibstream          data;
+  ibstream          data;
 
   websocket_frame();
   websocket_frame(websocket_frame &&other);
