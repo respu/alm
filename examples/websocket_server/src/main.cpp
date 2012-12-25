@@ -27,6 +27,16 @@ public:
     try
     {
       alm::http::parseRequest(socketFD, data, size, request);
+
+      std::cout << "URL: " << request.url << std::endl;
+      std::map<std::string,std::string>::iterator it = request.parameters.begin();
+      for(;it!=request.parameters.end(); ++it)
+      {
+        std::cout << "parameter: " << it->first;
+        std::cout << "; value: " << it->second;
+        std::cout << std::endl;
+      }
+      std::cout << std::endl;
     }
     catch(alm::forbidden_exception &e)
     {

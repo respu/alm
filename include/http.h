@@ -33,6 +33,8 @@ private:
   static void parseParameters(int socketFD, std::string &cmd,
                              std::stringstream &ss, http_request &request);
 
+  static void tokenizeParameters(std::string &parameters, http_request &request);
+
   static void parseGet(int socketFD, std::stringstream &ss, http_request &request);
 
   static void parsePost(int socketFD, std::stringstream &ss, http_request &request);

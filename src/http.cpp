@@ -1,12 +1,12 @@
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <map>
+#include <list>
 #include "exceptions.h"
 #include "filereader.h"
 #include "network.h"
 #include "http.h"
-
-#include <iostream>
 
 namespace alm
 {
@@ -48,15 +48,49 @@ void http::parseParameters(int socketFD, std::string &cmd,
 void http::parseGet(int socketFD, std::stringstream &ss,
                     http_request &request)
 {
-  std::cout << "GET" << std::endl;
-  std::cout << ss.str() << std::endl;
+  int begin = request.url.find('?');
+  if(begin >= 0)
+  {
+    std::string parameters = 
+      request.url.substr(begin+1, request.url.length()-1);
+
+    tokenizeParameters(parameters, request); 
+
+    request.url = request.url.substr(0, begin);
+  }
 }
 
 void http::parsePost(int socketFD, std::stringstream &ss,
                      http_request &request)
 {
-  std::cout << "POST" << std::endl;
-  std::cout << ss.str() << std::endl;
+  std::string tmp = ss.str();
+  std::string parameters = 
+    tmp.substr(tmp.find_last_of("\n") + 1, tmp.length());
+
+  if(tmp.find("=") >= 0)
+  {
+    tokenizeParameters(parameters, request);
+  }
+}
+
+void http::tokenizeParameters(std::string &parameters, http_request &request)
+{
+  std::list<std::string> pairs;
+  char* pair = std::strtok((char*)parameters.c_str(),"&");
+  while(pair)
+  {
+    pairs.push_back(std::string(pair));
+    pair = std::strtok(NULL,"&");
+  }
+  
+  std::list<std::string>::iterator it = pairs.begin();
+  for(; it!=pairs.end(); ++it)
+  {
+    char* parameter = std::strtok((char*)(*it).c_str(), "=");
+    char* value = std::strtok(NULL, "=");
+    request.parameters.insert({std::string(parameter),
+                               std::string(value?value:"")});
+  } 
 }
 
 void http::responseFile(int socketFD, const std::string &fileName)
