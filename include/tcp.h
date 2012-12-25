@@ -2,6 +2,7 @@
 #define __ALM__TCP__
 
 #include <arpa/inet.h>
+#include <sys/poll.h>
 
 namespace alm
 {
@@ -9,6 +10,8 @@ namespace alm
 class tcp
 {
 public:
+  static const int MAX_SOCKETS = 200;
+
   static int createSocket(unsigned short port, sockaddr_in &sockAddr);
 
   static void bindSocket(int socketFD, sockaddr_in &sockAddr);

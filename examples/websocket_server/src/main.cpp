@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include "tcp.h"
 #include "tcp_server.h"
 #include "http.h"
 #include "exceptions.h"
@@ -82,7 +83,7 @@ public:
   }
 
 private:
-  short m_clients[200];
+  short m_clients[alm::tcp::MAX_SOCKETS];
 
 };
 

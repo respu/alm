@@ -57,8 +57,6 @@ public:
   }
 
 private:
-  static const int MAX_SOCKETS = 200;
-
   unsigned int m_timeout;
 
   std::atomic<bool> m_running;
@@ -71,7 +69,7 @@ private:
 
   int m_listenFD;
 
-  struct pollfd m_sockets[MAX_SOCKETS];
+  struct pollfd m_sockets[tcp::MAX_SOCKETS];
 
   int m_numSockets;
 
