@@ -1,11 +1,14 @@
 #include <iostream>
 #include <string>
+#include <thread>
 #include "tcp.h"
 #include "tcp_server.h"
 #include "http.h"
 #include "exceptions.h"
 #include "websocket.h"
 #include "network.h"
+#include "safe_map.h"
+#include "endianess.h"
 
 class http_handler
 {
@@ -20,16 +23,6 @@ public:
     try
     {
       alm::http::parseRequest(socketFD, data, size, request);
-
-      std::cout << "URL: " << request.url << std::endl;
-      std::map<std::string,std::string>::iterator it = request.parameters.begin();
-      for(;it!=request.parameters.end(); ++it)
-      {
-        std::cout << "parameter: " << it->first;
-        std::cout << "; value: " << it->second;
-        std::cout << std::endl;
-      }
-      std::cout << std::endl;
     }
     catch(alm::forbidden_exception &e)
     {
@@ -56,22 +49,63 @@ class websocket_handler
 public:
   websocket_handler()
   {
-    memset(m_clients, -1, sizeof(m_clients));
+    m_thread = std::thread([&]
+      {
+        while(true)
+        {
+          m_clients.for_each([]
+            (int socketFD)
+            {
+              float bn = 1.5;
+              //unsigned int bn = alm::big::uint(ln);
+              alm::websocket::response(socketFD, (unsigned char*)&bn, sizeof(bn), 2);
+            });
+          sleep(1);
+        }
+      });
+  }
+
+  ~websocket_handler()
+  {
+    if(m_thread.joinable())
+    {
+      m_thread.join();
+    } 
   }
 
   void addClient(int newSocketFD)
   {
-    m_clients[newSocketFD] = newSocketFD;
+    std::cout << "addClient: " << newSocketFD << std::endl;
+
+    m_clients.insert(newSocketFD, newSocketFD);
   }
 
   void removeClient(int socketFD)
   {
-    m_clients[socketFD] = -1;
+    std::cout << "removeClient: " << socketFD << std::endl;
+
+    try
+    {
+      m_clients.erase(socketFD, [](int){});
+    }
+    catch(alm::not_found_exception &e)
+    {
+      std::cout << "[not found] removeClient: " << socketFD << std::endl;
+    }
   }
 
   bool exists(int socketFD)
   {
-    return m_clients[socketFD] >= 0;
+    bool result = true;
+    try
+    {
+      m_clients.find(socketFD);
+    }
+    catch(alm::not_found_exception &e)
+    {
+      result = false;
+    }
+    return result;
   }
 
   void processFrame(int socketFD, alm::websocket_frame &frame)
@@ -83,8 +117,9 @@ public:
   }
 
 private:
-  short m_clients[alm::tcp::MAX_SOCKETS];
+  alm::safe_map<int, int> m_clients;
 
+  std::thread m_thread;
 };
 
 
@@ -96,9 +131,7 @@ public:
   {
   }
 
-  void addClient(int newSocketFD, sockaddr_in clientAddr)
-  {
-  }
+  void addClient(int newSocketFD, sockaddr_in clientAddr) { }
 
   void removeClient(int socketFD)
   {

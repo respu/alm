@@ -140,14 +140,14 @@ void http::forbidden(int socketFD)
 
 std::map<std::string, std::string> http::m_extensions =
     {
-    {"gif", "image/gif"},
-    {"jpg", "image/jpg"},
+    {"gif",  "image/gif"},
+    {"jpg",  "image/jpg"},
     {"jpeg", "image/jpeg"},
-    {"png", "image/png"},
-    {"ico", "image/ico"},
+    {"png",  "image/png"},
+    {"ico",  "image/ico"},
     {"html", "text/html"},
-    {"js", "text/html"},
-    {"css", "text/html"}
+    {"js",   "application/javascript"},
+    {"css",  "text/css"}
     };
 
 }
