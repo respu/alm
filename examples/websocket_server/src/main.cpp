@@ -78,7 +78,7 @@ public:
   {
     alm::websocket_frame m(std::move(frame));
 
-    alm::websocket::response(socketFD, m.data.data(), m.data.size(),
+    alm::websocket::writeFrame(socketFD, m.data.data(), m.data.size(),
                              frame.header.opcode);
   }
 
@@ -113,7 +113,7 @@ public:
       if(m_websocket_handler.exists(socketFD))
       {
         alm::websocket_frame frame;
-        alm::websocket::parseFrame(socketFD, m_buffer, rc, frame);
+        alm::websocket::readFrame(socketFD, m_buffer, rc, frame);
         m_websocket_handler.processFrame(socketFD, frame);
       }
       else

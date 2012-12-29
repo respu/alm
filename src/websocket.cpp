@@ -50,7 +50,7 @@ void websocket::handshake(int socketFD, std::string &rqst)
   write(socketFD, ack.c_str(), ack.length());
 }
 
-void websocket::parseFrame(int socketFD, unsigned char* data, unsigned int size,
+void websocket::readFrame(int socketFD, unsigned char* data, unsigned int size,
 		      websocket_frame &frame)
 {
   parseFrameHeader(data, size, frame.header);
@@ -66,7 +66,7 @@ void websocket::parseFrame(int socketFD, unsigned char* data, unsigned int size,
   }
 }
 
-void websocket::response(int socketFD, unsigned char* data,
+void websocket::writeFrame(int socketFD, unsigned char* data,
 		     unsigned long long size, char opcode)
 {
   unsigned char header[10];

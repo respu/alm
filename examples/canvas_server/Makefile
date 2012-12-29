@@ -13,7 +13,7 @@ CFLAGS = -Wall -g -std=c++0x
 
 # define any directories containing header files other than /usr/include
 #
-INCLUDES = -I$(ALM_PATH)/include
+INCLUDES = -I$(ALM_PATH)/include -Iinclude
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
