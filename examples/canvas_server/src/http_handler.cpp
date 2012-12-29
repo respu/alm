@@ -17,7 +17,7 @@ void http_handler::process(int socketFD, unsigned char* data,
   alm::http_request request;
   try
   {
-    alm::http::parseRequest(socketFD, data, size, request);
+    alm::http::readRequest(socketFD, data, size, request);
   }
   catch(alm::forbidden_exception &e)
   {
@@ -27,7 +27,7 @@ void http_handler::process(int socketFD, unsigned char* data,
   std::string fileName = base + request.url;
   try
   {
-    alm::http::responseFile(socketFD, fileName);
+    alm::http::writeFile(socketFD, fileName);
   }
   catch(alm::file_not_found_exception &e)
   {

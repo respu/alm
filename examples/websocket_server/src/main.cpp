@@ -19,7 +19,7 @@ public:
     alm::http_request request;
     try
     {
-      alm::http::parseRequest(socketFD, data, size, request);
+      alm::http::readRequest(socketFD, data, size, request);
 
       std::cout << "URL: " << request.url << std::endl;
       std::map<std::string,std::string>::iterator it = request.parameters.begin();
@@ -39,7 +39,7 @@ public:
     std::string fileName = base + request.url;
     try
     {
-      alm::http::responseFile(socketFD, fileName);
+      alm::http::writeFile(socketFD, fileName);
     }
     catch(alm::file_not_found_exception &e)
     {

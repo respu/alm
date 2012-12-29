@@ -11,7 +11,7 @@
 namespace alm
 {
 
-void http::parseRequest(int socketFD, unsigned char* data,
+void http::readRequest(int socketFD, unsigned char* data,
                  unsigned int size, http_request &request)
 {
   std::stringstream ss;
@@ -93,7 +93,7 @@ void http::tokenizeParameters(std::string &parameters, http_request &request)
   } 
 }
 
-void http::responseFile(int socketFD, const std::string &fileName)
+void http::writeFile(int socketFD, const std::string &fileName)
 {
   filereader reader(fileName.c_str());
   

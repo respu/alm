@@ -18,10 +18,10 @@ struct http_request
 class http
 {
 public:
-  static void parseRequest(int socketFD, unsigned char* data,
+  static void readRequest(int socketFD, unsigned char* data,
                       unsigned int size, http_request &request);
 
-  static void responseFile(int socketFD, const std::string &fileName);
+  static void writeFile(int socketFD, const std::string &fileName);
 
   static void notFound(int socketFD);
   
