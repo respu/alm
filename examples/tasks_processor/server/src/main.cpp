@@ -4,13 +4,13 @@
 #include <map>
 #include <sstream>
 #include <atomic>
-#include "tcp_client.h"
-#include "tcp_server.h"
-#include "network.h"
-#include "thread_pool.h"
-#include "safe_map.h"
-#include "ibstream.h"
-#include "endianess.h"
+#include "alm/tcp_client.h"
+#include "alm/tcp_server.h"
+#include "alm/network.h"
+#include "alm/thread_pool.h"
+#include "alm/safe_map.h"
+#include "alm/ibstream.h"
+#include "alm/endianess.h"
 
 enum task_type { CREATE, PAUSE, RESUME, STOP};
 

@@ -2,13 +2,13 @@
 #include <sstream>
 #include <string.h>
 #include <stdint.h>
-#include "exceptions.h"
-#include "sha1.h"
-#include "base64.h"
-#include "ibstream.h"
-#include "network.h"
-#include "websocket.h"
-#include "endianess.h"
+#include "alm/exceptions.h"
+#include "alm/sha1.h"
+#include "alm/base64.h"
+#include "alm/ibstream.h"
+#include "alm/network.h"
+#include "alm/websocket.h"
+#include "alm/endianess.h"
 
 namespace alm
 {

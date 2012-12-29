@@ -1,4 +1,4 @@
-#include "ibstream.h"
+#include "alm/ibstream.h"
 
 namespace alm
 {

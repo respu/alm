@@ -3,10 +3,10 @@
 #include <sstream>
 #include <map>
 #include <list>
-#include "exceptions.h"
-#include "filereader.h"
-#include "network.h"
-#include "http.h"
+#include "alm/exceptions.h"
+#include "alm/filereader.h"
+#include "alm/network.h"
+#include "alm/http.h"
 
 namespace alm
 {

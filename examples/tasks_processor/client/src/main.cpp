@@ -2,10 +2,10 @@
 #include <string.h>
 #include <iostream>
 #include <sstream>
-#include "tcp_client.h"
-#include "network.h"
-#include "obstream.h"
-#include "endianess.h"
+#include "alm/tcp_client.h"
+#include "alm/network.h"
+#include "alm/obstream.h"
+#include "alm/endianess.h"
 
 enum task_type { CREATE, PAUSE, RESUME, STOP};
 

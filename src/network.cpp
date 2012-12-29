@@ -1,8 +1,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include "network.h"
-#include "exceptions.h"
+#include "alm/network.h"
+#include "alm/exceptions.h"
 
 namespace alm
 {

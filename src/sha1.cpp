@@ -1,7 +1,7 @@
 #include <string.h>
 #include <string>
 #include <sstream>
-#include "sha1.h"
+#include "alm/sha1.h"
 
 namespace alm
 {
