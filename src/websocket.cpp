@@ -1,7 +1,6 @@
 #include <string>
 #include <sstream>
 #include <string.h>
-#include <stdint.h>
 #include "alm/exceptions.h"
 #include "alm/sha1.h"
 #include "alm/base64.h"
@@ -55,14 +54,30 @@ void websocket::readFrame(int socketFD, unsigned char* data, unsigned int size,
 {
   parseFrameHeader(data, size, frame.header);
 
-  unsigned long long maskIndex =
-       parseFramePayload(data + frame.header.header_length, size - frame.header.header_length,
-			 frame, 0);
 
+  frame.data.write(data + frame.header.header_length,
+                   size - frame.header.header_length);
+
+  int rc;
   while(frame.data.size() < frame.header.data_length_ext)
   {
-    int rc =read(socketFD, data, size);
-    maskIndex = parseFramePayload(data, rc, frame, maskIndex);
+    rc = network::recv(socketFD, data, size);
+    frame.data.write(data, rc);
+  }
+
+  unmaskFrame(frame);
+}
+
+void websocket::unmaskFrame(websocket_frame &frame)
+{
+  if(frame.header.masked)
+  {
+    unsigned char* c = frame.data.data();
+    unsigned long long size = frame.data.size();
+    for(unsigned long long i=0; i<size; ++i)
+    {
+      c[i] = c[i] ^ ((unsigned char*)(&frame.header.mask))[i%4];
+    }
   }
 }
 
@@ -72,8 +87,8 @@ void websocket::writeFrame(int socketFD, unsigned char* data,
   unsigned char header[10];
   unsigned int header_length = writeFrameHeader(header, data, size, opcode);
 
-  network::writeData(socketFD, header, header_length);
-  network::writeAllData(socketFD, data, size);
+  network::send(socketFD, header, header_length);
+  network::send(socketFD, data, size);
 }
 
 std::string websocket::getKey(std::string &rqst)

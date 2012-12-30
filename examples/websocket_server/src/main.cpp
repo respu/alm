@@ -79,7 +79,7 @@ public:
     alm::websocket_frame m(std::move(frame));
 
     alm::websocket::writeFrame(socketFD, m.data.data(), m.data.size(),
-                             frame.header.opcode);
+                               frame.header.opcode);
   }
 
 private:
@@ -107,7 +107,7 @@ public:
 
   void recvMessage(int socketFD)
   {
-    int rc = alm::network::readData(socketFD, m_buffer, BLOCK);
+    int rc = alm::network::recv(socketFD, m_buffer, BLOCK);
     if( rc > 0)
     {
       if(m_websocket_handler.exists(socketFD))

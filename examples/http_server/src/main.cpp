@@ -62,7 +62,7 @@ public:
   {
     // Read request on poll thread from tcp_server.
     // If it was read from another thread it would fail.
-    int rc = alm::network::readData(socketFD, m_buffer, BLOCK);
+    int rc = alm::network::recv(socketFD, m_buffer, BLOCK);
     if( rc > 0)
     {
       m_handler.process(socketFD, m_buffer, rc);

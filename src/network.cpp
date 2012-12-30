@@ -34,14 +34,13 @@ const int protocol::HEADER_SIZE = sizeof(int);
 unsigned int protocol::readHeader(int socketFD)
 {
   unsigned int messageTotalSize = 0;
-
   unsigned char headerBuf[HEADER_SIZE];
 
-  if (network::readData(socketFD, headerBuf, HEADER_SIZE) != HEADER_SIZE)
+  if(network::recv(socketFD, headerBuf, HEADER_SIZE) != HEADER_SIZE)
   {
     throw read_header_exception();
   }
-   
+
   memcpy(&messageTotalSize, headerBuf, HEADER_SIZE);
 
   return messageTotalSize;
@@ -56,11 +55,11 @@ void protocol::readBody(int socketFD, message &msg, unsigned int totalSize)
   unsigned char* position = msg.data;
 
   int rc;
-  while((rc = network::readData(socketFD, position, remaining)) != remaining)
+  while((rc = network::recv(socketFD, position, remaining)) != remaining)
   {
      remaining -= rc;
      position += rc;
-  }
+  } 
 }
 
 void protocol::recv(int socketFD, message &msg)
@@ -73,11 +72,11 @@ void protocol::send(int socketFD, unsigned char* data, unsigned int size)
 {
   int totalSize = HEADER_SIZE + size;
 
-  network::writeData(socketFD, (unsigned char*)&totalSize, HEADER_SIZE); 
-  network::writeAllData(socketFD, data, size); 
+  network::send(socketFD, (unsigned char*)&totalSize, HEADER_SIZE); 
+  network::send(socketFD, data, size); 
 }
 
-int network::readData(int socketFD, unsigned char* data, int size)
+int network::recv(int socketFD, unsigned char* data, int size)
 {
   int rc = read(socketFD, data, size);
 
@@ -107,7 +106,7 @@ int network::writeData(int socketFD, unsigned char* data, int size)
   return rc;
 }
 
-void network::writeAllData(int socketFD, unsigned char* data, int size)
+void network::send(int socketFD, unsigned char* data, int size)
 {
   int remaining = size; 
   unsigned char* position = data;

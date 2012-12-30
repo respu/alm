@@ -102,7 +102,7 @@ void http::writeFile(int socketFD, const std::string &fileName)
   unsigned char buffer[reader.size()];
   reader.read(buffer, reader.size());
   
-  network::writeAllData(socketFD, buffer, reader.size());
+  network::send(socketFD, buffer, reader.size());
 }
 
 void http::responseHeader(int socketFD, const std::string &fileName,

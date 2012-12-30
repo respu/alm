@@ -25,7 +25,7 @@ public:
 
   void recvMessage(int socketFD)
   {
-    int rc = alm::network::readData(socketFD, m_buffer, BLOCK);
+    int rc = alm::network::recv(socketFD, m_buffer, BLOCK);
     if( rc > 0)
     {
       if(m_websocket_handler.exists(socketFD))
