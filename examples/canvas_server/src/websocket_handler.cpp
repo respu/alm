@@ -1,5 +1,6 @@
 #include <iostream>
 #include "websocket_handler.h"
+#include "parameter.h"
 
 websocket_handler::websocket_handler()
   : m_running(true)
@@ -11,8 +12,9 @@ websocket_handler::websocket_handler()
 	m_clients.for_each([]
 	  (int socketFD)
 	  {
-	    float bn = 1.5;
-	    alm::websocket::writeFrame(socketFD, (unsigned char*)&bn, sizeof(bn), 2);
+            parameter param;
+            parameter_processor::next(param);
+	    alm::websocket::writeFrame(socketFD, (unsigned char*)&param, sizeof(param), 2);
 	  });
 	sleep(1);
       }
