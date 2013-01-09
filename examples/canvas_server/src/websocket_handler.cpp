@@ -31,12 +31,12 @@ websocket_handler::~websocket_handler()
   } 
 }
 
-void websocket_handler::addClient(int newSocketFD)
+void websocket_handler::onOpen(int newSocketFD)
 {
   m_clients.insert(newSocketFD, newSocketFD);
 }
 
-void websocket_handler::removeClient(int socketFD)
+void websocket_handler::onClose(int socketFD)
 {
   try
   {
@@ -44,7 +44,7 @@ void websocket_handler::removeClient(int socketFD)
   }
   catch(alm::not_found_exception &e)
   {
-    std::cout << "[not found] removeClient: " << socketFD << std::endl;
+    std::cout << "[not found] onClose: " << socketFD << std::endl;
   }
 }
 

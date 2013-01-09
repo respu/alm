@@ -54,11 +54,11 @@ public:
   {
   }
 
-  void addClient(int newSocketFD, sockaddr_in clientAddr) { }
+  void onOpen(int newSocketFD, sockaddr_in clientAddr) { }
 
-  void removeClient(int socketFD) { }
+  void onClose(int socketFD) { }
 
-  void recvMessage(int socketFD)
+  void onMessage(int socketFD)
   {
     // Read request on poll thread from tcp_server.
     // If it was read from another thread it would fail.

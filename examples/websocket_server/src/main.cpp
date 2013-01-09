@@ -59,12 +59,12 @@ public:
     memset(m_clients, -1, sizeof(m_clients));
   }
 
-  void addClient(int newSocketFD)
+  void onOpen(int newSocketFD)
   {
     m_clients[newSocketFD] = newSocketFD;
   }
 
-  void removeClient(int socketFD)
+  void onClose(int socketFD)
   {
     m_clients[socketFD] = -1;
   }
@@ -96,16 +96,16 @@ public:
   {
   }
 
-  void addClient(int newSocketFD, sockaddr_in clientAddr)
+  void onOpen(int newSocketFD, sockaddr_in clientAddr)
   {
   }
 
-  void removeClient(int socketFD)
+  void onClose(int socketFD)
   {
-    m_websocket_handler.removeClient(socketFD); 
+    m_websocket_handler.onClose(socketFD); 
   }
 
-  void recvMessage(int socketFD)
+  void onMessage(int socketFD)
   {
     int rc = alm::network::recv(socketFD, m_buffer, BLOCK);
     if( rc > 0)
@@ -122,7 +122,7 @@ public:
         if(rqst.find(alm::websocket::SEC_WEBSOCKET_KEY) != std::string::npos)
         {
           alm::websocket::handshake(socketFD, rqst);
-          m_websocket_handler.addClient(socketFD);
+          m_websocket_handler.onOpen(socketFD);
         }
         else
         {

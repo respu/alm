@@ -13,9 +13,9 @@ public:
   
   ~websocket_handler();
   
-  void addClient(int newSocketFD);
+  void onOpen(int newSocketFD);
 
-  void removeClient(int socketFD);
+  void onClose(int socketFD);
 
   bool exists(int socketFD);
 

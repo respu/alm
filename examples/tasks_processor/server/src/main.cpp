@@ -39,19 +39,19 @@ public:
       });
   }
 
-  void addClient(int newSocketFD, sockaddr_in clientAddr)
+  void onOpen(int newSocketFD, sockaddr_in clientAddr)
   {
     std::cout << "ip: " << inet_ntoa(clientAddr.sin_addr) <<
 		" port: " << alm::little::ushort(clientAddr.sin_port) <<
 		" socketFD: " << newSocketFD << std::endl;
   }
 
-  void removeClient(int socketFD)
+  void onClose(int socketFD)
   {
     std::cout << "Closed client socket " << socketFD << std::endl;
   }
 
-  void recvMessage(int socketFD)
+  void onMessage(int socketFD)
   {
      std::cout << "Received message" << std::endl;
      

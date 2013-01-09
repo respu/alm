@@ -43,7 +43,7 @@ struct stop_task : base_task
 
 struct processor
 {
-  void recvMessage(int socketFD)
+  void onMessage(int socketFD)
   {
      std::cout << "Received Message" << std::endl;
      alm::message msg;
