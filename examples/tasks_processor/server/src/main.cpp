@@ -26,10 +26,11 @@ struct request
 class processor
 {
 public:
-  alm::thread_pool pool;
-  alm::safe_map<unsigned int, request*> requests;
-
-  processor():pool(2){}
+  processor():pool(2)
+  {
+    commands[CREATE] = &processor::createRequest;
+    commands[STOP]   = &processor::stopRequest;
+  }
 
   ~processor()
   {
@@ -64,24 +65,28 @@ public:
      processMessage(socketFD, msg);
   }
 
+private:
+  alm::thread_pool pool;
+
+  alm::safe_map<unsigned int, request*> requests;
+
+  typedef void (processor::*command)(int, alm::ibstream&);
+
+  command commands[4];
+
   void processMessage(int socketFD, alm::message &msg)
   {
     alm::ibstream input;
-    input.write(msg.data,msg.size);
+    input.write(msg.data, msg.size);
+
     unsigned int networkType;
     input >> networkType; 
     task_type type = (task_type)alm::little::uint(networkType);
-    if(type == CREATE)
-    {
-      createRequest(socketFD);
-    }
-    else if(type == STOP)
-    {
-      stopRequest(input);
-    }
+
+    (this->*commands[type])(socketFD, input);
   }
 
-  void createRequest(int socketFD)
+  void createRequest(int socketFD, alm::ibstream &input)
   {
       static unsigned int ticket = 0;
       
@@ -106,9 +111,9 @@ public:
      alm::protocol::send(socketFD, (unsigned char*)ack.c_str(), ack.length());
   }
 
-  void stopRequest(alm::ibstream &input)
+  void stopRequest(int socketFD, alm::ibstream &input)
   {
-    int32_t requestID;
+    unsigned int requestID;
     input >> requestID;
     unsigned int id = alm::little::uint(requestID);
     try
