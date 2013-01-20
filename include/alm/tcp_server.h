@@ -116,19 +116,19 @@ private:
           if (m_sockets[i].fd == m_listenFD)
           {
             /* Connection request on original socket. */
-            newClient(); 
+            onOpen(); 
           }
           else
           {
             /* Data arriving on an already-connected socket. */
-            newMessage(i); 
+            onMessage(i); 
           }
         }
       }
     }
   }
 
-  void newClient()
+  void onOpen()
   {
     sockaddr_in clientAddr;
     unsigned int size = sizeof(clientAddr);
@@ -143,7 +143,7 @@ private:
     m_handler->onOpen(newSocketFD, clientAddr); 
   }
 
-  void newMessage(int indexFD)
+  void onMessage(int indexFD)
   {
     try
     {
