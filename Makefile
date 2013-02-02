@@ -55,7 +55,16 @@ BIN = $(BINDIR)/libalm.so
 
 .PHONY: depend clean
 
-all:    $(BIN)
+all:	MAKE_DIR	\
+	$(BIN)
+
+MAKE_DIR:
+	if [ ! -d $(OBJDIR) ];then	\
+		mkdir $(OBJDIR);	\
+	fi
+	if [ ! -d $(BINDIR) ];then	\
+		mkdir $(BINDIR);	\
+	fi
 
 $(BIN): $(OBJS) 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(BIN) $(OBJS) $(LFLAGS) $(LIBS)
