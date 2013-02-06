@@ -45,8 +45,8 @@ void json_null::parse(std::stringstream &input)
 
 json_array::~json_array()
 {
-  std::vector<json_value*>::iterator it = m_values.begin();
-  for(; it != m_values.end(); ++it)
+  std::vector<json_value*>::iterator it = m_data.begin();
+  for(; it != m_data.end(); ++it)
   {
     delete *it;
   }
@@ -59,7 +59,7 @@ void json_array::parse(std::stringstream &input)
   do
   {
     json_value* value = json::parse(input);
-    m_values.push_back(value);
+    m_data.push_back(value);
   }
   while(json::match(input, ","));
 
@@ -68,8 +68,8 @@ void json_array::parse(std::stringstream &input)
 
 json_object::~json_object()
 {
-  std::map<std::string, json_value*>::iterator it = m_values.begin();
-  for(; it != m_values.end(); ++it)
+  std::map<std::string, json_value*>::iterator it = m_data.begin();
+  for(; it != m_data.end(); ++it)
   {
     delete it->second;
   }
@@ -88,7 +88,7 @@ void json_object::parse(std::stringstream &input)
 
     json_value* value = json::parse(input);
 
-    m_values[key] = value;
+    m_data[key] = value;
   }
   while(json::match(input, ","));
 

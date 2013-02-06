@@ -1,3 +1,4 @@
+#include <iostream>
 #include <sstream>
 #include "alm/json.h"
 
@@ -11,7 +12,11 @@ int main()
     <<            "  \"data\": [\"abcd\", 42, 54.7]"
     <<            "}";
 
-  alm::json_holder obj;
-  obj << s;
+  alm::json_object obj;
+  obj.parse(s);
 
+  std::cout << obj.get("foo").getNumber() << std::endl;
+  std::cout << obj.get("bar").getBool() << std::endl;
+  std::cout << obj.get("person").get("name").getString() << std::endl;
+  std::cout << obj.get("data").at(0).getString() << std::endl;
 }
