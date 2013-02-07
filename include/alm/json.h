@@ -5,6 +5,7 @@
 #include <map>
 #include <sstream>
 #include <exception>
+#include <cassert>
 
 namespace alm
 {
@@ -17,6 +18,8 @@ class json_object;
 class json_value
 {
 public:
+  json_value();
+
   ~json_value();
 
   void deserialize(std::stringstream &input);
@@ -49,7 +52,8 @@ private:
     JSON_STRING,
     JSON_NULL,
     JSON_ARRAY,
-    JSON_OBJECT
+    JSON_OBJECT,
+    JSON_UNINIT
   } m_type;
 
   union
@@ -77,12 +81,16 @@ public:
 
   size_t size()
   {
+    assert(m_values != 0);
+
     return m_values->size();
   }
 
   template<typename T>
   T& get(unsigned int index)
   {
+    assert(m_values != 0 && m_values->size() > index);
+
     json_value* value = m_values->at(index);
     return value->get<T>();
   }
@@ -90,6 +98,8 @@ public:
   template<typename T>
   void put(T &&value)
   {
+    assert(m_values != 0);
+
     json_value* v = new json_value();
     v->put<T>(std::move(value));
     m_values->push_back(v);
@@ -114,12 +124,16 @@ public:
 
   size_t size()
   {
+    assert(m_values != 0);
+
     return m_values->size();
   }
 
   template<typename T>
   T& get(const char* key)
   {
+    assert(m_values != 0);
+
     json_value* value = m_values->at(key);
     return value->get<T>();
   }
@@ -127,6 +141,8 @@ public:
   template<typename T>
   void put(const char* key, T &&value)
   {
+    assert(m_values != 0);
+
     json_value* v = new json_value();
     v->put<T>(std::move(value));
     m_values->insert(std::pair<std::string,json_value*>(key,v));
@@ -149,36 +165,48 @@ public:
 template<>
 inline bool& json_value::get<bool>()
 {
+  assert(m_type == JSON_BOOL);
+
   return m_bool;
 }
 
 template<>
 inline std::string& json_value::get<std::string>()
 {
+  assert(m_type == JSON_STRING);
+
   return *m_string;
 }
 
 template<>
 inline double& json_value::get<double>()
 {
+  assert(m_type == JSON_NUMBER);
+
   return m_number;
 }
 
 template<>
 inline json_array& json_value::get<json_array>()
 {
+  assert(m_type == JSON_ARRAY);
+
   return *m_array;
 }
 
 template<>
 inline json_object& json_value::get<json_object>()
 {
+  assert(m_type == JSON_OBJECT);
+
   return *m_object;
 }
 
 template<>
 inline void json_value::put<bool>(bool &&value)
 {
+  assert(m_type == JSON_UNINIT);
+
   m_type = JSON_BOOL;
   m_bool = value;
 }
@@ -186,6 +214,8 @@ inline void json_value::put<bool>(bool &&value)
 template<>
 inline void json_value::put<double>(double &&value)
 {
+  assert(m_type == JSON_UNINIT);
+
   m_type = JSON_NUMBER;
   m_number = value;
 }
@@ -193,6 +223,8 @@ inline void json_value::put<double>(double &&value)
 template<>
 inline void json_value::put<std::string>(std::string &&value)
 {
+  assert(m_type == JSON_UNINIT);
+
   m_type = JSON_STRING;
   m_string = new std::string(std::move(value));
 }
@@ -200,6 +232,8 @@ inline void json_value::put<std::string>(std::string &&value)
 template<>
 inline void json_value::put<json_array>(json_array &&value)
 {
+  assert(m_type == JSON_UNINIT);
+
   m_type = JSON_ARRAY;
   m_array = new json_array(std::move(value));
 }
@@ -207,6 +241,8 @@ inline void json_value::put<json_array>(json_array &&value)
 template<>
 inline void json_value::put<json_object>(json_object &&value)
 {
+  assert(m_type == JSON_UNINIT);
+
   m_type = JSON_OBJECT;
   m_object = new json_object(std::move(value));
 }

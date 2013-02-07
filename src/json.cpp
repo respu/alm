@@ -5,8 +5,15 @@
 namespace alm
 {
 
+json_value::json_value()
+  : m_type(JSON_UNINIT)
+{
+}
+
 void json_value::deserialize(std::stringstream &input)
 {
+  assert(m_type == JSON_UNINIT);
+
   input >> std::ws;
   char c = input.peek();
 
