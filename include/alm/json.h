@@ -9,153 +9,131 @@
 namespace alm
 {
 
-/************************************************
- * Use tagged union
- *
- * Encapsule everything as much as possible
- * (Value.serialize, Value.deserialize, ...)
- *
- * Use swith statements instead of if/else where
- * possible for the shake of clarity
- ************************************************/
-
-
 struct json_exception : public std::exception {};
+
+class json_array;
+class json_object;
 
 class json_value
 {
 public:
-  json_value(){}
+  ~json_value();
 
-  virtual ~json_value(){}
+  void deserialize(std::stringstream &input);
 
-  virtual void parse(std::stringstream &input)      = 0;
-  virtual void deserialize(std::stringstream &input)= 0;
+  void serialize(std::stringstream &output);
 
-  virtual double       getNumber()                  = 0;
-  virtual std::string& getString()                  = 0;
-  virtual bool         getBool()                    = 0;
-  virtual json_value&  at(unsigned int index)       = 0;
-  virtual json_value&  get(const char* key)         = 0;
-  virtual unsigned int size()                       = 0;
-};
+  template<typename T>
+  T& get();
 
-class json_number : public json_value 
-{
-public:
-  json_number(){}
-
-  virtual ~json_number(){}
-
-  virtual void parse(std::stringstream &input);
-
-  virtual double       getNumber()                 { return m_data;          }
-  virtual std::string& getString()                 { throw json_exception(); }
-  virtual bool         getBool()                   { throw json_exception(); }
-  virtual json_value&  at(unsigned int index)      { throw json_exception(); }
-  virtual json_value&  get(const char* key)        { throw json_exception(); }
-  virtual unsigned int size()                      { throw json_exception(); } 
+  template<typename T>
+  void put(T&& value);
 
 private:
-  double m_data;
+  void parseNull(std::stringstream &input);
+
+  void parseBool(std::stringstream &input);
+
+  void parseNumber(std::stringstream &input);
+
+  void parseString(std::stringstream &input);
+
+  void parseArray(std::stringstream &input);
+
+  void parseObject(std::stringstream &input);
+
+  enum
+  {
+    JSON_BOOL,
+    JSON_NUMBER,
+    JSON_STRING,
+    JSON_NULL,
+    JSON_ARRAY,
+    JSON_OBJECT
+  } m_type;
+
+  union
+  {
+    bool         m_bool;
+    double       m_number;
+    std::string* m_string;
+    json_array*  m_array;
+    json_object* m_object;
+  };
 };
 
-class json_string : public json_value
+class json_array
 {
 public:
-  json_string(){}
+  json_array();
 
-  virtual ~json_string(){}
+  json_array(json_array &&other);
 
-  virtual void parse(std::stringstream &input);
+  ~json_array();
 
-  virtual double       getNumber()                 { throw json_exception(); }
-  virtual std::string& getString()                 { return m_data;          }
-  virtual bool         getBool()                   { throw json_exception(); }
-  virtual json_value&  at(unsigned int index)      { throw json_exception(); }
-  virtual json_value&  get(const char* key)        { throw json_exception(); }
-  virtual unsigned int size()                      { throw json_exception(); } 
+  void deserialize(std::stringstream &input);
+
+  void serialize(std::stringstream &output);
+
+  size_t size()
+  {
+    return m_values->size();
+  }
+
+  template<typename T>
+  T& get(unsigned int index)
+  {
+    json_value* value = m_values->at(index);
+    return value->get<T>();
+  }
+
+  template<typename T>
+  void put(T &&value)
+  {
+    json_value* v = new json_value();
+    v->put<T>(std::move(value));
+    m_values->push_back(v);
+  }
 
 private:
-  std::string m_data;
+  std::vector<json_value*>* m_values;
 };
 
-class json_bool : public json_value
+class json_object
 {
 public:
-  json_bool(){}
+  json_object();
 
-  virtual ~json_bool(){}
+  json_object(json_object &&other);
 
-  virtual void parse(std::stringstream &input);
+  ~json_object();
 
-  virtual double       getNumber()                 { throw json_exception(); }
-  virtual std::string& getString()                 { throw json_exception(); }
-  virtual bool         getBool()                   { return m_data;          }
-  virtual json_value&  at(unsigned int index)      { throw json_exception(); }
-  virtual json_value&  get(const char* key)        { throw json_exception(); }
-  virtual unsigned int size()                      { throw json_exception(); } 
+  void deserialize(std::stringstream &input);
+
+  void serialize(std::stringstream &output);
+
+  size_t size()
+  {
+    return m_values->size();
+  }
+
+  template<typename T>
+  T& get(const char* key)
+  {
+    json_value* value = m_values->at(key);
+    return value->get<T>();
+  }
+
+  template<typename T>
+  void put(const char* key, T &&value)
+  {
+    json_value* v = new json_value();
+    v->put<T>(std::move(value));
+    m_values->insert(std::pair<std::string,json_value*>(key,v));
+  }
 
 private:
-  bool m_data;
-};
-
-class json_null : public json_value
-{
-public:
-  json_null(){}
-
-  virtual ~json_null(){}
-
-  virtual void parse(std::stringstream &input);
-
-  virtual double       getNumber()                 { throw json_exception(); }
-  virtual std::string& getString()                 { throw json_exception(); }
-  virtual bool         getBool()                   { throw json_exception(); }
-  virtual json_value&  at(unsigned int index)      { throw json_exception(); }
-  virtual json_value&  get(const char* key)        { throw json_exception(); }
-  virtual unsigned int size()                      { throw json_exception(); } 
-
-};
-
-class json_array : public json_value
-{
-public:
-  json_array(){}
-
-  virtual ~json_array();
-
-  virtual void parse(std::stringstream &input);
-
-  virtual double       getNumber()                 { throw json_exception();     }
-  virtual std::string& getString()                 { throw json_exception();     }
-  virtual bool         getBool()                   { throw json_exception();     }
-  virtual json_value&  at(unsigned int index)      { return *(m_data.at(index)); }
-  virtual json_value&  get(const char* key)        { throw json_exception();     }
-  virtual unsigned int size()                      { return m_data.size();       } 
-
-private:
-  std::vector<json_value*> m_data;
-};
-
-class json_object : public json_value
-{
-public:
-  json_object(){}
-
-  virtual ~json_object();
-
-  virtual void parse(std::stringstream &input);
-
-  virtual double       getNumber()                 { throw json_exception(); }
-  virtual std::string& getString()                 { throw json_exception(); }
-  virtual bool         getBool()                   { throw json_exception(); }
-  virtual json_value&  at(unsigned int index)      { throw json_exception(); }
-  virtual json_value&  get(const char* key)        { return *(m_data[key]);  }
-  virtual unsigned int size()                      { throw json_exception(); } 
-
-private:
-  std::map<std::string, json_value*> m_data;
+  std::map<std::string, json_value*>* m_values;
 };
 
 class json
@@ -166,26 +144,72 @@ public:
   static bool match(std::stringstream &input, const char* pattern);
   
   static void read(std::stringstream &input, std::string &str);
-
-  static json_value* parse(std::stringstream &input);
 };
 
-class json_holder
+template<>
+inline bool& json_value::get<bool>()
 {
-public:
-  json_holder();
+  return m_bool;
+}
 
-  ~json_holder();
-
-  void operator<<(std::stringstream &input);
-
-private:
-  json_value* m_value;
-};
-
-class json_visitor
+template<>
+inline std::string& json_value::get<std::string>()
 {
-};
+  return *m_string;
+}
+
+template<>
+inline double& json_value::get<double>()
+{
+  return m_number;
+}
+
+template<>
+inline json_array& json_value::get<json_array>()
+{
+  return *m_array;
+}
+
+template<>
+inline json_object& json_value::get<json_object>()
+{
+  return *m_object;
+}
+
+template<>
+inline void json_value::put<bool>(bool &&value)
+{
+  m_type = JSON_BOOL;
+  m_bool = value;
+}
+
+template<>
+inline void json_value::put<double>(double &&value)
+{
+  m_type = JSON_NUMBER;
+  m_number = value;
+}
+
+template<>
+inline void json_value::put<std::string>(std::string &&value)
+{
+  m_type = JSON_STRING;
+  m_string = new std::string(std::move(value));
+}
+
+template<>
+inline void json_value::put<json_array>(json_array &&value)
+{
+  m_type = JSON_ARRAY;
+  m_array = new json_array(std::move(value));
+}
+
+template<>
+inline void json_value::put<json_object>(json_object &&value)
+{
+  m_type = JSON_OBJECT;
+  m_object = new json_object(std::move(value));
+}
 
 }
 #endif

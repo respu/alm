@@ -2,35 +2,101 @@
 #include <algorithm>
 #include "alm/json.h"
 
-#include <iostream>
-
 namespace alm
 {
 
-void json_number::parse(std::stringstream &input)
+void json_value::deserialize(std::stringstream &input)
 {
   input >> std::ws;
-  input >> m_data;
-  if (input.fail())
+  char c = input.peek();
+
+  switch(c)
   {
-    throw json_exception();
+    case '{':
+      m_type = JSON_OBJECT;
+      parseObject(input);
+      break;
+    case '[':
+      m_type = JSON_ARRAY;
+      parseArray(input);
+      break; 
+    case '"':
+      m_type = JSON_STRING;
+      parseString(input);
+      break;
+    case 't':
+    case 'f':
+      m_type = JSON_BOOL;
+      parseBool(input);
+      break;
+    case 'n':
+      m_type = JSON_NULL;
+      parseNull(input);
+      break;
+    default:
+      m_type = JSON_NUMBER;
+      parseNumber(input);
+      break;
   }
 }
 
-void json_string::parse(std::stringstream &input)
+void json_value::serialize(std::stringstream &output)
 {
-  json::read(input, m_data);
+  switch(m_type)
+  {
+    case JSON_OBJECT:
+      m_object->serialize(output);
+      break;
+    case JSON_ARRAY:
+      m_array->serialize(output);
+      break; 
+    case JSON_STRING:
+      output << '"' << *m_string << '"';
+      break;
+    case JSON_BOOL:
+    {
+      std::string s = m_bool ? "true" : "false";
+      output << s;
+      break;
+    }
+    case JSON_NULL:
+      output << "null";
+      break;
+    case JSON_NUMBER:
+      output << m_number;
+      break;
+    default:
+      break;
+  }
 }
 
-void json_bool::parse(std::stringstream &input)
+json_value::~json_value()
+{
+  switch(m_type)
+  {
+    case JSON_OBJECT:
+      delete m_object;
+      break;
+    case JSON_ARRAY:
+      delete m_array;
+      break;
+    case JSON_STRING:
+      delete m_string;
+      break;
+    default:
+      break;
+  }
+}
+
+void json_value::parseBool(std::stringstream &input)
 {
   if(json::match(input, "true"))
   {
-    m_data = true;
+    m_bool = true;
   }
   else if(json::match(input, "false"))
   {
-    m_data = false;
+    m_bool = false;
   }
   else
   {
@@ -38,44 +104,122 @@ void json_bool::parse(std::stringstream &input)
   }
 }
 
-void json_null::parse(std::stringstream &input)
+void json_value::parseNumber(std::stringstream &input)
+{
+  input >> std::ws;
+  input >> m_number;
+  if (input.fail())
+  {
+    throw json_exception();
+  }
+}
+
+void json_value::parseString(std::stringstream &input)
+{
+  m_string = new std::string();
+  json::read(input, *m_string);
+}
+
+void json_value::parseNull(std::stringstream &input)
 {
   json::check(input, "null");
 }
 
+void json_value::parseArray(std::stringstream &input)
+{
+  m_array = new json_array();
+  m_array->deserialize(input);
+}
+
+void json_value::parseObject(std::stringstream &input)
+{
+  m_object = new json_object();
+  m_object->deserialize(input);
+}
+
+json_array::json_array()
+{
+  m_values = new std::vector<json_value*>();
+}
+
+json_array::json_array(json_array &&other)
+{
+  m_values = other.m_values;
+  other.m_values = 0;
+}
+
 json_array::~json_array()
 {
-  std::vector<json_value*>::iterator it = m_data.begin();
-  for(; it != m_data.end(); ++it)
+  if(m_values != 0)
   {
-    delete *it;
+    std::vector<json_value*>::iterator it = m_values->begin();
+    for(; it != m_values->end(); ++it)
+    {
+      delete *it;
+    }
+    delete m_values;
   }
 }
 
-void json_array::parse(std::stringstream &input)
+void json_array::deserialize(std::stringstream &input)
 {
   json::check(input, "[");
 
   do
   {
-    json_value* value = json::parse(input);
-    m_data.push_back(value);
+    json_value* value = new json_value();
+    value->deserialize(input);
+    m_values->push_back(value);
   }
   while(json::match(input, ","));
 
   json::check(input, "]");
 }
 
+void json_array::serialize(std::stringstream &output)
+{
+  output << "[";
+
+  std::vector<json_value*>::iterator it = m_values->begin();
+
+  for(; it != m_values->end();)
+  {
+    (*it)->serialize(output);
+    ++it;
+    if(it != m_values->end())
+    {
+      output << ",";
+    }
+  }
+  
+  output << "]";
+}
+
+json_object::json_object()
+{
+  m_values = new std::map<std::string, json_value*>();
+}
+
+json_object::json_object(json_object &&other)
+{
+  m_values = other.m_values;
+  other.m_values = 0;
+}
+
 json_object::~json_object()
 {
-  std::map<std::string, json_value*>::iterator it = m_data.begin();
-  for(; it != m_data.end(); ++it)
+  if(m_values != 0)
   {
-    delete it->second;
+    std::map<std::string, json_value*>::iterator it = m_values->begin();
+    for(; it != m_values->end(); ++it)
+    {
+      delete it->second;
+    }
+    delete m_values;
   }
 }
 
-void json_object::parse(std::stringstream &input)
+void json_object::deserialize(std::stringstream &input)
 {
   json::check(input, "{");
 
@@ -86,13 +230,35 @@ void json_object::parse(std::stringstream &input)
 
     json::check(input, ":");
 
-    json_value* value = json::parse(input);
-
-    m_data[key] = value;
+    json_value* value = new json_value();
+    value->deserialize(input);
+    m_values->insert(std::pair<std::string,json_value*>(key, value));
   }
   while(json::match(input, ","));
 
   json::check(input, "}");
+}
+
+void json_object::serialize(std::stringstream &output)
+{
+  output << "{";
+
+  std::map<std::string, json_value*>::iterator it = m_values->begin();
+  for(; it != m_values->end();)
+  {
+    output << it->first;
+    output << ":";
+    it->second->serialize(output);
+
+    ++it;
+
+    if(it != m_values->end())
+    {
+      output << ",";
+    }
+  }
+
+  output << "}";
 }
 
 bool json::match(std::stringstream &input, const char* pattern)
@@ -141,59 +307,6 @@ void json::read(std::stringstream &input, std::string &str)
   {
     throw json_exception();
   }
-}
-
-json_value* json::parse(std::stringstream &input)
-{
-  json_value* result = 0;
-
-  input >> std::ws;
-  char c = input.peek();
-
-  switch(c)
-  {
-    case '{':
-      result = new json_object();
-      break;
-    case '[':
-      result = new json_array();
-      break; 
-    case '"':
-      result = new json_string();
-      break;
-    case 't':
-    case 'f':
-      result = new json_bool();
-      break;
-    case 'n':
-      result = new json_null();
-      break;
-    default:
-      result = new json_number();
-      break;
-  }
-  result->parse(input);
-
-  return result;
-}
-
-json_holder::json_holder()
-  : m_value(0)
-{
-}
-
-void json_holder::operator<<(std::stringstream &input)
-{
-  if(m_value != 0)
-  {
-    delete m_value;
-  }
-  m_value = json::parse(input);
-}
-
-json_holder::~json_holder()
-{
-  delete m_value;
 }
 
 }
