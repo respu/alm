@@ -95,6 +95,13 @@ json_value::~json_value()
   }
 }
 
+void json_value::putNull()
+{
+  assert(m_type == JSON_UNINIT);
+
+  m_type = JSON_NULL;
+}
+
 void json_value::parseBool(std::stringstream &input)
 {
   if(json::match(input, "true"))
@@ -253,7 +260,7 @@ void json_object::serialize(std::stringstream &output)
   std::map<std::string, json_value*>::iterator it = m_values->begin();
   for(; it != m_values->end();)
   {
-    output << it->first;
+    output << '"' << it->first << '"';
     output << ":";
     it->second->serialize(output);
 

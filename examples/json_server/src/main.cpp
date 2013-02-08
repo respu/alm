@@ -1,27 +1,71 @@
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include "alm/json.h"
 
-int main()
+void test_huge()
 {
+  std::cout << "start read file" << std::endl;
+
+  std::string line;
+  std::stringstream ss;
+  std::ifstream myfile ("citylots.json");
+  if (myfile.is_open())
   {
+    while ( myfile.good() )
+    {
+      getline (myfile,line);
+      ss << line;
+    }
+    myfile.close();
+  }
+  std::cout << "end read file" << std::endl;
+
+  std::cout << "start deserialization" << std::endl;
+
+  alm::json_object obj;
+  obj.deserialize(ss);
+
+  std::cout << "end deserialization" << std::endl;
+
+  std::cout << "start serialization" << std::endl;
+
+  std::stringstream output;
+  obj.serialize(output);
+
+  std::cout << "end serialization" << std::endl;
+}
+
+void test_put()
+{
   std::stringstream ss;
 
   alm::json_object obj;
-  std::string s("pepe");
-  obj.put<std::string>("name",std::move(s));
+  obj.put<std::string>("name","pepe");
+  obj.putNull("c1");
 
   alm::json_array a;
   a.put<double>(1);
+  a.putNull();
   obj.put<alm::json_array>("lista",std::move(a));
 
   obj.serialize(ss);
   std::cout << ss.str() << std::endl;
-  }
 
-  return 0;
+  alm::json_object o;
+  o.deserialize(ss);
 
-  {
+  std::stringstream ss2;
+  o.serialize(ss2);
+
+  std::cout << ss2.str() << std::endl;
+
+  std::cout << o.has<std::string>("name") << std::endl;
+  std::cout << o.has<std::string>("c1") << std::endl;
+}
+
+void test()
+{
   std::stringstream s;
   s <<            "{" 
     <<            "  \"foo\" : 1,"
@@ -43,6 +87,10 @@ int main()
   obj.serialize(ss);
 
   std::cout << ss.str() << std::endl;
-  }
-  
+}
+
+int main()
+{
+  test_put();  
+  return 0;
 }

@@ -30,7 +30,12 @@ public:
   T& get();
 
   template<typename T>
+  bool is();
+
+  template<typename T>
   void put(T&& value);
+
+  void putNull();
 
 private:
   void parseNull(std::stringstream &input);
@@ -87,12 +92,19 @@ public:
   }
 
   template<typename T>
+  bool has(unsigned int index)
+  {
+    assert(m_values != 0 && m_values->size() > index);
+
+    return m_values->at(index)->is<T>();
+  }
+
+  template<typename T>
   T& get(unsigned int index)
   {
     assert(m_values != 0 && m_values->size() > index);
 
-    json_value* value = m_values->at(index);
-    return value->get<T>();
+    return m_values->at(index)->get<T>();
   }
 
   template<typename T>
@@ -102,6 +114,15 @@ public:
 
     json_value* v = new json_value();
     v->put<T>(std::move(value));
+    m_values->push_back(v);
+  }
+
+  void putNull()
+  {
+    assert(m_values != 0);
+
+    json_value* v = new json_value();
+    v->putNull(); 
     m_values->push_back(v);
   }
 
@@ -130,12 +151,18 @@ public:
   }
 
   template<typename T>
+  bool has(const char* key)
+  {
+    std::map<std::string, json_value*>::iterator it(m_values->find(key));
+    return it != m_values->end() && it->second->is<T>();
+  }
+
+  template<typename T>
   T& get(const char* key)
   {
     assert(m_values != 0);
 
-    json_value* value = m_values->at(key);
-    return value->get<T>();
+    return m_values->at(key)->get<T>();
   }
 
   template<typename T>
@@ -145,6 +172,15 @@ public:
 
     json_value* v = new json_value();
     v->put<T>(std::move(value));
+    m_values->insert(std::pair<std::string,json_value*>(key,v));
+  }
+
+  void putNull(const char* key)
+  {
+    assert(m_values != 0);
+
+    json_value* v = new json_value();
+    v->putNull();
     m_values->insert(std::pair<std::string,json_value*>(key,v));
   }
 
@@ -163,9 +199,39 @@ public:
 };
 
 template<>
+inline bool json_value::is<bool>()
+{
+  return m_type == JSON_BOOL;
+}
+
+template<>
+inline bool json_value::is<std::string>()
+{
+  return m_type == JSON_STRING;
+}
+
+template<>
+inline bool json_value::is<double>()
+{
+  return m_type == JSON_NUMBER;
+}
+
+template<>
+inline bool json_value::is<json_array>()
+{
+  return m_type == JSON_ARRAY;
+}
+
+template<>
+inline bool json_value::is<json_object>()
+{
+  return m_type == JSON_OBJECT;
+}
+
+template<>
 inline bool& json_value::get<bool>()
 {
-  assert(m_type == JSON_BOOL);
+  assert(is<bool>());
 
   return m_bool;
 }
@@ -173,7 +239,7 @@ inline bool& json_value::get<bool>()
 template<>
 inline std::string& json_value::get<std::string>()
 {
-  assert(m_type == JSON_STRING);
+  assert(is<std::string>());
 
   return *m_string;
 }
@@ -181,7 +247,7 @@ inline std::string& json_value::get<std::string>()
 template<>
 inline double& json_value::get<double>()
 {
-  assert(m_type == JSON_NUMBER);
+  assert(is<double>());
 
   return m_number;
 }
@@ -189,7 +255,7 @@ inline double& json_value::get<double>()
 template<>
 inline json_array& json_value::get<json_array>()
 {
-  assert(m_type == JSON_ARRAY);
+  assert(is<json_array>());
 
   return *m_array;
 }
@@ -197,7 +263,7 @@ inline json_array& json_value::get<json_array>()
 template<>
 inline json_object& json_value::get<json_object>()
 {
-  assert(m_type == JSON_OBJECT);
+  assert(is<json_object>());
 
   return *m_object;
 }
