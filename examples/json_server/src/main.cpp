@@ -2,6 +2,7 @@
 #include <sstream>
 #include <fstream>
 #include "alm/json.h"
+#include "alm/allocator.h"
 
 void test_huge()
 {
@@ -27,13 +28,14 @@ void test_huge()
   obj.deserialize(ss);
 
   std::cout << "end deserialization" << std::endl;
-
+/*
   std::cout << "start serialization" << std::endl;
 
   std::stringstream output;
   obj.serialize(output);
 
   std::cout << "end serialization" << std::endl;
+*/
 }
 
 void test_put()
@@ -71,7 +73,11 @@ void test()
     <<            "  \"foo\" : 1,"
     <<            "  \"bar\" : false,"
     <<            "  \"person\" : {\"name\" : \"GWB\", \"age\" : 60},"
-    <<            "  \"data\": [\"abcd\", 42, 54.7]"
+    <<            "  \"data\": [\"abcd\", 42, 54.7],"
+    <<            "  \"foo2\" : 1,"
+    <<            "  \"bar2\" : false,"
+    <<            "  \"person2\" : {\"name\" : \"GWB\", \"age\" : 60},"
+    <<            "  \"data2\": [\"abcd\", 42, 54.7]"
     <<            "}";
 
   alm::json_object obj;
@@ -89,8 +95,43 @@ void test()
   std::cout << ss.str() << std::endl;
 }
 
+void test_alloc()
+{
+  alm::allocator alloc(10240000); 
+  for(int i = 0; i<20000000; ++i)
+  {
+    alm::json_value* v = alloc.create<alm::json_value>();
+    v->putNull();
+  }
+
+  alloc.reset();
+
+  for(int i = 0; i<20000000; ++i)
+  {
+    alm::json_value* v = alloc.create<alm::json_value>();
+    v->putNull();
+  }
+
+  alloc.reset();
+}
+
+void test_alloc2()
+{
+  for(int i = 0; i<20000000; ++i)
+  {
+    alm::json_value* v = new alm::json_value();
+    v->putNull();
+  }
+
+  for(int i = 0; i<20000000; ++i)
+  {
+    alm::json_value* v = new alm::json_value();
+    v->putNull();
+  }
+}
 int main()
 {
-  test_put();  
+  test_alloc();
+
   return 0;
 }
