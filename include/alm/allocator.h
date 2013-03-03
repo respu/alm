@@ -7,79 +7,95 @@
 #include <type_traits>
 #include <string.h>
 
-#include <vector>
+#include <memory>
 
 namespace alm
 {
 
 class allocator
 {
-  typedef unsigned char* byte;
-
 public:
   allocator()
-    : m_buffer(0), m_chunk(0), m_chunkSize(DEFAULT_CHUNK_SIZE), m_offset(0)
+    : m_chunk_head(0), m_chunk_capacity(DEFAULT_CHUNK_CAPACITY)
   {
-    init();
+    addChunk(m_chunk_capacity);
   }
 
-  allocator(std::size_t chunkSize)
-    : m_buffer(0), m_chunk(0), m_chunkSize(chunkSize), m_offset(0)
+  allocator(std::size_t chunkCapacity)
+    : m_chunk_head(0), m_chunk_capacity(chunkCapacity)
+
   {
-    init(); 
+    addChunk(m_chunk_capacity);
   }
 
   ~allocator()
   {
-    std::vector<byte*>::iterator it;
-    for(it = m_chunks.begin(); it != m_chunks.end(); ++it)
-    {
-      delete[] *it;
-    }
+    clear();
   }
   
   template<typename T>
   T* create()
   {
-    std::size_t offset = m_offset;
-    m_offset += sizeof(T);
-    if(m_offset >= m_chunkSize)
-    {
-      resize();
-      offset = m_offset;
-    }
-    byte* p = m_chunks[m_chunk] + offset;
+    void* p = alloc<T>();
 
     return new ((T*)p) T();
   }
 
   void reset()
   {
-    m_chunk = 0;
-    m_offset = 0;
+  }
+
+  void clear()
+  {
+    while(m_chunk_head != 0)
+    {
+      chunk_header* next = m_chunk_head->next;
+      free(m_chunk_head);
+      m_chunk_head = next;
+    }
   }
 
 private:
-  void init()
+  struct chunk_header
   {
-    m_chunks.push_back(new byte[m_chunkSize]);
+    std::size_t   capacity;
+    std::size_t   size;
+    chunk_header* next;
+  };
+
+  chunk_header* m_chunk_head;
+  std::size_t   m_chunk_capacity;
+
+  template<typename T>
+  void* alloc()
+  {
+    std::size_t size = align<T>();
+    if (m_chunk_head->size + size > m_chunk_head->capacity)
+    {
+      addChunk(m_chunk_capacity > size ? m_chunk_capacity : size);
+    }
+    char* buffer = (char*)(m_chunk_head + 1) + m_chunk_head->size;
+    m_chunk_head->size += size;
+    return buffer;
   }
 
-  void resize()
+  template<typename T>
+  std::size_t align()
   {
-    m_chunks.push_back(new byte[m_chunkSize]);
-
-    m_chunk++;
-    m_offset = 0;
+    std::size_t alignment = std::alignment_of<T>::value - 1;
+    return ((sizeof(T) + alignment) & ~alignment);
   }
 
-  byte*               m_buffer;
-  std::vector<byte*>  m_chunks;
-  std::size_t         m_chunk;
-  std::size_t         m_chunkSize;
-  std::size_t         m_offset;
+  void addChunk(std::size_t capacity)
+  {
+    chunk_header* chunk = (chunk_header*)malloc(sizeof(chunk_header) + capacity);
+    chunk->capacity = capacity;
+    chunk->size = 0;
+    chunk->next = m_chunk_head;
+    m_chunk_head = chunk;
+  }
 
-  static const std::size_t DEFAULT_CHUNK_SIZE = 102400; // 100KB
+  static const std::size_t DEFAULT_CHUNK_CAPACITY = 1024 * 100; // 100KB
 };
 
 //**********************************************************************

@@ -104,7 +104,6 @@ void test_alloc()
     v->putNull();
   }
 
-  alloc.reset();
 
   for(int i = 0; i<20000000; ++i)
   {
@@ -112,7 +111,6 @@ void test_alloc()
     v->putNull();
   }
 
-  alloc.reset();
 }
 
 void test_alloc2()
