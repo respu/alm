@@ -6,6 +6,7 @@
 #include <sstream>
 #include <exception>
 #include <cassert>
+#include "alm/memory.h"
 
 namespace alm
 {
@@ -14,6 +15,10 @@ struct json_exception : public std::exception {};
 
 class json_array;
 class json_object;
+class json_value;
+
+typedef std::vector<json_value*, allocator<json_value*>> json_vector;
+typedef std::basic_string<char, std::char_traits<char>, allocator<char> > json_string;
 
 class json_value
 {
@@ -22,7 +27,7 @@ public:
 
   ~json_value();
 
-  void deserialize(std::stringstream &input);
+  void deserialize(std::stringstream &input, memory_pool &pool);
 
   void serialize(std::stringstream &output);
 
@@ -44,21 +49,21 @@ private:
 
   void parseNumber(std::stringstream &input);
 
-  void parseString(std::stringstream &input);
+  void parseString(std::stringstream &input, memory_pool &pool);
 
-  void parseArray(std::stringstream &input);
+  void parseArray(std::stringstream &input, memory_pool &pool);
 
-  void parseObject(std::stringstream &input);
+  void parseObject(std::stringstream &input, memory_pool &pool);
 
   enum
   {
+    JSON_UNINIT,
     JSON_BOOL,
     JSON_NUMBER,
     JSON_STRING,
     JSON_NULL,
     JSON_ARRAY,
-    JSON_OBJECT,
-    JSON_UNINIT
+    JSON_OBJECT
   } m_type;
 
   union
@@ -74,7 +79,7 @@ private:
 class json_array
 {
 public:
-  json_array();
+  json_array(memory_pool &pool);
 
   json_array(json_array &&other);
 
@@ -127,13 +132,15 @@ public:
   }
 
 private:
-  std::vector<json_value*>* m_values;
+  memory_pool& m_pool;
+
+  json_vector* m_values;
 };
 
 class json_object
 {
 public:
-  json_object();
+  json_object(memory_pool &pool);
 
   json_object(json_object &&other);
 
@@ -185,6 +192,8 @@ public:
   }
 
 private:
+  memory_pool& m_pool;
+
   std::map<std::string, json_value*>* m_values;
 };
 
@@ -196,6 +205,26 @@ public:
   static bool match(std::stringstream &input, const char* pattern);
   
   static void read(std::stringstream &input, std::string &str);
+};
+
+class json_document
+{
+public:
+  json_document();
+
+  ~json_document();
+
+  void deserialize(std::stringstream &input);
+
+  void serialize(std::stringstream &output);
+
+  json_object& root();
+
+private:
+// TODO: create pool on deserialize according to input size
+  memory_pool m_pool;
+
+  json_object m_root;
 };
 
 template<>

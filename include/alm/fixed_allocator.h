@@ -1,108 +1,21 @@
-#ifndef __ALM__ALLOCATOR__
-#define __ALM__ALLOCATOR__
+#ifndef __ALM__FIXED__ALLOCATOR__
+#define __ALM__FIXED__ALLOCATOR__
 
 #include <stdexcept>
 #include <algorithm>
 #include <functional>
 #include <type_traits>
 #include <string.h>
-
 #include <memory>
 
 namespace alm
 {
 
-class allocator
-{
-public:
-  allocator()
-    : m_chunk_head(0), m_chunk_capacity(DEFAULT_CHUNK_CAPACITY)
-  {
-    addChunk(m_chunk_capacity);
-  }
-
-  allocator(std::size_t chunkCapacity)
-    : m_chunk_head(0), m_chunk_capacity(chunkCapacity)
-
-  {
-    addChunk(m_chunk_capacity);
-  }
-
-  ~allocator()
-  {
-    clear();
-  }
-  
-  template<typename T>
-  T* create()
-  {
-    void* p = alloc<T>();
-
-    return new ((T*)p) T();
-  }
-
-  void reset()
-  {
-  }
-
-  void clear()
-  {
-    while(m_chunk_head != 0)
-    {
-      chunk_header* next = m_chunk_head->next;
-      free(m_chunk_head);
-      m_chunk_head = next;
-    }
-  }
-
-private:
-  struct chunk_header
-  {
-    std::size_t   capacity;
-    std::size_t   size;
-    chunk_header* next;
-  };
-
-  chunk_header* m_chunk_head;
-  std::size_t   m_chunk_capacity;
-
-  template<typename T>
-  void* alloc()
-  {
-    std::size_t size = align<T>();
-    if (m_chunk_head->size + size > m_chunk_head->capacity)
-    {
-      addChunk(m_chunk_capacity > size ? m_chunk_capacity : size);
-    }
-    char* buffer = (char*)(m_chunk_head + 1) + m_chunk_head->size;
-    m_chunk_head->size += size;
-    return buffer;
-  }
-
-  template<typename T>
-  std::size_t align()
-  {
-    std::size_t alignment = std::alignment_of<T>::value - 1;
-    return ((sizeof(T) + alignment) & ~alignment);
-  }
-
-  void addChunk(std::size_t capacity)
-  {
-    chunk_header* chunk = (chunk_header*)malloc(sizeof(chunk_header) + capacity);
-    chunk->capacity = capacity;
-    chunk->size = 0;
-    chunk->next = m_chunk_head;
-    m_chunk_head = chunk;
-  }
-
-  static const std::size_t DEFAULT_CHUNK_CAPACITY = 1024 * 100; // 100KB
-};
-
 //**********************************************************************
-// memory_pool
+// fixed_allocator
 //**********************************************************************
 template <typename T, const size_t MAX_SIZE>
-class memory_pool
+class fixed_allocator
 {
 public:
 
@@ -120,14 +33,14 @@ public:
   template<typename U>
   struct rebind
   {
-      typedef memory_pool<U, MAX_SIZE>
+      typedef fixed_allocator<U, MAX_SIZE>
       other;
   };
 
   //*********************************************************************
   // Constructor
   //*********************************************************************
-  memory_pool()
+  fixed_allocator()
     : p_first_free(in_use)
   {
     initialise();
@@ -136,7 +49,7 @@ public:
   //*********************************************************************
   // Copy constructor
   //*********************************************************************
-  memory_pool(const memory_pool &rhs)
+  fixed_allocator(const fixed_allocator &rhs)
     : p_first_free(in_use)
   {
     initialise();
@@ -146,7 +59,7 @@ public:
   // Templated copy constructor
   //*********************************************************************
   template<typename U>
-  memory_pool(const memory_pool<U, MAX_SIZE>&rhs)
+  fixed_allocator(const fixed_allocator<U, MAX_SIZE>&rhs)
       : p_first_free(in_use)
   {
     initialise();
@@ -155,7 +68,7 @@ public:
   //*********************************************************************
   // Destructor
   //*********************************************************************
-  ~memory_pool()
+  ~fixed_allocator()
   {
     free(buffer);
   }
@@ -319,7 +232,7 @@ private:
   }
 
   // Disabled operator.
-  void operator =(const memory_pool &);
+  void operator =(const fixed_allocator &);
   
   // The allocation buffer. Ensure enough space for correct alignment.
   char* buffer;
@@ -339,8 +252,8 @@ private:
 // Equality operator.
 //*********************************************************************
 template<typename T, const size_t MAX_SIZE>
-inline bool operator ==(const memory_pool<T, MAX_SIZE> &,
-                        const memory_pool<T, MAX_SIZE> &)
+inline bool operator ==(const fixed_allocator<T, MAX_SIZE> &,
+                        const fixed_allocator<T, MAX_SIZE> &)
 {
   return (false);
 }
@@ -350,8 +263,8 @@ inline bool operator ==(const memory_pool<T, MAX_SIZE> &,
 // Inequality operator.
 //*********************************************************************
 template<typename T, const size_t MAX_SIZE>
-inline bool operator !=(const memory_pool<T, MAX_SIZE> &, 
-                        const memory_pool<T, MAX_SIZE> &)
+inline bool operator !=(const fixed_allocator<T, MAX_SIZE> &, 
+                        const fixed_allocator<T, MAX_SIZE> &)
 {
   return (true);
 }
@@ -562,5 +475,3 @@ inline bool operator !=(const fixed_block_allocator<T, MAX_SIZE> &,
 }
 
 }
-
-#endif
