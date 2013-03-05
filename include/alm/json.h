@@ -18,7 +18,40 @@ class json_object;
 class json_value;
 
 typedef std::vector<json_value*, allocator<json_value*>> json_vector;
+typedef std::pair<const std::string, json_value*> json_pair;
+typedef std::map<std::string, json_value*, std::less<std::string>,
+                 allocator<json_pair>> json_map;
 typedef std::basic_string<char, std::char_traits<char>, allocator<char> > json_string;
+
+class json
+{
+public:
+  static void check(std::stringstream &input, const char* pattern);
+
+  static bool match(std::stringstream &input, const char* pattern);
+  
+  static void read(std::stringstream &input, std::string &str);
+
+  static std::string* createString(memory_pool &pool);
+
+  static json_value* createValue(memory_pool &pool);
+
+  static json_vector* createVector(memory_pool &pool);
+
+  static json_map* createMap(memory_pool &pool);
+
+  static json_array* createArray(memory_pool &pool);
+
+  static json_object* createObject(memory_pool &pool);
+
+private:
+  template<typename T>
+  static std::size_t align()
+  {
+    std::size_t alignment = std::alignment_of<T>::value - 1;
+    return ((sizeof(T) + alignment) & ~alignment);
+  }
+};
 
 class json_value
 {
@@ -117,7 +150,7 @@ public:
   {
     assert(m_values != 0);
 
-    json_value* v = new json_value();
+    json_value* v = json::createValue(m_pool);
     v->put<T>(std::move(value));
     m_values->push_back(v);
   }
@@ -126,7 +159,7 @@ public:
   {
     assert(m_values != 0);
 
-    json_value* v = new json_value();
+    json_value* v = json::createValue(m_pool);
     v->putNull(); 
     m_values->push_back(v);
   }
@@ -160,7 +193,7 @@ public:
   template<typename T>
   bool has(const char* key)
   {
-    std::map<std::string, json_value*>::iterator it(m_values->find(key));
+    json_map::iterator it(m_values->find(key));
     return it != m_values->end() && it->second->is<T>();
   }
 
@@ -177,7 +210,7 @@ public:
   {
     assert(m_values != 0);
 
-    json_value* v = new json_value();
+    json_value* v = json::createValue(m_pool);
     v->put<T>(std::move(value));
     m_values->insert(std::pair<std::string,json_value*>(key,v));
   }
@@ -186,7 +219,7 @@ public:
   {
     assert(m_values != 0);
 
-    json_value* v = new json_value();
+    json_value* v = json::createValue(m_pool);
     v->putNull();
     m_values->insert(std::pair<std::string,json_value*>(key,v));
   }
@@ -194,17 +227,7 @@ public:
 private:
   memory_pool& m_pool;
 
-  std::map<std::string, json_value*>* m_values;
-};
-
-class json
-{
-public:
-  static void check(std::stringstream &input, const char* pattern);
-
-  static bool match(std::stringstream &input, const char* pattern);
-  
-  static void read(std::stringstream &input, std::string &str);
+  json_map* m_values;
 };
 
 class json_document
@@ -217,6 +240,8 @@ public:
   void deserialize(std::stringstream &input);
 
   void serialize(std::stringstream &output);
+
+  memory_pool& pool();
 
   json_object& root();
 

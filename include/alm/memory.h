@@ -76,6 +76,8 @@ template<typename T>
 class allocator
 {
 public:
+  memory_pool& m_pool;
+
   // Typedefs
   typedef size_t size_type;
   typedef ptrdiff_t difference_type;
@@ -98,8 +100,8 @@ public:
   /// Copy constructor with another type
   template<typename U>
   allocator(const allocator<U> &other) throw()
+    : m_pool(other.m_pool)
   {
-    m_pool = other.m_pool;
   }
 
   /// Destructor
@@ -183,8 +185,6 @@ public:
   };
 
 private:
-  memory_pool& m_pool;
-
   size_type align(size_type n)
   {
     size_type alignment = std::alignment_of<T>::value - 1;

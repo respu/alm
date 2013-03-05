@@ -37,35 +37,26 @@ void test_huge()
   std::cout << "end serialization" << std::endl;
 
 }
-/*
+
 void test_put()
 {
   std::stringstream ss;
 
-  alm::json_object obj;
+  alm::json_document doc;
+
+  alm::json_object& obj = doc.root();
   obj.put<std::string>("name","pepe");
   obj.putNull("c1");
 
-  alm::json_array a;
+  alm::json_array a(doc.pool());
   a.put<double>(1);
   a.putNull();
   obj.put<alm::json_array>("lista",std::move(a));
 
-  obj.serialize(ss);
+  doc.serialize(ss);
   std::cout << ss.str() << std::endl;
-
-  alm::json_object o;
-  o.deserialize(ss);
-
-  std::stringstream ss2;
-  o.serialize(ss2);
-
-  std::cout << ss2.str() << std::endl;
-
-  std::cout << o.has<std::string>("name") << std::endl;
-  std::cout << o.has<std::string>("c1") << std::endl;
 }
-
+/*
 void test()
 {
   std::stringstream s;
