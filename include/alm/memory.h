@@ -3,9 +3,17 @@
 
 #include <cstddef> // For ptrdiff_t
 #include <utility> // For forward
+#include <stdexcept>
 
 namespace alm
 {
+
+template<typename T>
+inline std::size_t alignSize(std::size_t n)
+{
+  std::size_t alignment = std::alignment_of<T>::value - 1;
+  return (((n * sizeof(T)) + alignment) & ~alignment);
+}
 
 class memory_pool
 {
@@ -27,7 +35,7 @@ public:
   {
     clear();
   }
-
+// TODO: rename alloc as allocate
   void* alloc(std::size_t size)
   {
     if (m_chunk_head->size + size > m_chunk_head->capacity)
@@ -76,6 +84,7 @@ template<typename T>
 class allocator
 {
 public:
+  // TODO: make it private
   memory_pool& m_pool;
 
   // Typedefs
@@ -97,6 +106,7 @@ public:
   {
   }
 
+  // TODO: Delete this constructor
   /// Copy constructor with another type
   template<typename U>
   allocator(const allocator<U> &other) throw()
@@ -136,7 +146,7 @@ public:
   /// Allocate memory
   pointer allocate(size_type n, const void* = 0)
   {
-    size_type size = align(n);
+    size_type size = alignSize<T>(n);
     return (pointer)m_pool.alloc(size);
   }
 
@@ -183,14 +193,23 @@ public:
   { 
     typedef allocator<U> other; 
   };
-
-private:
-  size_type align(size_type n)
-  {
-    size_type alignment = std::alignment_of<T>::value - 1;
-    return (((n * sizeof(value_type)) + alignment) & ~alignment);
-  }
 };
+
+template<typename T>
+inline bool operator ==(const allocator<T> &,
+                        const allocator<T> &)
+{
+  return (false);
+}
+
+template<typename T>
+inline bool operator !=(const allocator<T> &, 
+                        const allocator<T> &)
+{
+  return (true);
+}
+
+// TODO: add fixed_allocator as object_pool with stack storage
 
 }
 

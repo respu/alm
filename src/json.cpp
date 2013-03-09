@@ -58,7 +58,7 @@ void json_value::serialize(std::stringstream &output)
       m_array->serialize(output);
       break; 
     case JSON_STRING:
-      output << '"' << *m_string << '"';
+      output << '"' << m_string->c_str() << '"';
       break;
     case JSON_BOOL:
     {
@@ -121,8 +121,10 @@ void json_value::parseNull(std::stringstream &input)
 
 void json_value::parseString(std::stringstream &input, memory_pool &pool)
 {
-  m_string = json::createString(pool);
-  json::read(input, *m_string);
+  std::size_t size = json::stringSize(input);
+  m_string = json::createString(size, pool);
+  input.read(m_string->c_str(), size);
+  input.get();
 }
 
 void json_value::parseArray(std::stringstream &input, memory_pool &pool)
@@ -138,16 +140,13 @@ void json_value::parseObject(std::stringstream &input, memory_pool &pool)
 }
 
 json_array::json_array(memory_pool &pool)
-  : m_pool(pool)
+  : m_pool(pool), m_values(pool)
 {
-  m_values = json::createVector(pool);
 }
 
 json_array::json_array(json_array &&other)
-  : m_pool(other.m_pool)
+  : m_pool(other.m_pool), m_values(std::move(other.m_values))
 {
-  m_values = other.m_values;
-  other.m_values = 0;
 }
 
 json_array::~json_array()
@@ -160,9 +159,9 @@ void json_array::deserialize(std::stringstream &input)
 
   do
   {
-    json_value* value = json::createValue(m_pool);
-    value->deserialize(input, m_pool);
-    m_values->push_back(value);
+    json_value value;
+    value.deserialize(input, m_pool);
+    m_values.push_back(std::move(value));
   }
   while(json::match(input, ","));
 
@@ -173,32 +172,28 @@ void json_array::serialize(std::stringstream &output)
 {
   output << "[";
 
-  json_vector::iterator it = m_values->begin();
-
-  for(; it != m_values->end();)
+  json_list_node* n = m_values.begin();
+  while(n)
   {
-    (*it)->serialize(output);
-    ++it;
-    if(it != m_values->end())
+    n->data.serialize(output);
+    if(n->next)
     {
       output << ",";
     }
+    n = n->next;
   }
   
   output << "]";
 }
 
 json_object::json_object(memory_pool &pool)
-  : m_pool(pool)
+  : m_pool(pool), m_values(pool)
 {
-  m_values = json::createMap(pool);
 }
 
 json_object::json_object(json_object &&other)
-  : m_pool(other.m_pool)
+  : m_pool(other.m_pool), m_values(std::move(other.m_values))
 {
-  m_values = other.m_values;
-  other.m_values = 0;
 }
 
 json_object::~json_object()
@@ -211,14 +206,16 @@ void json_object::deserialize(std::stringstream &input)
 
   do
   {
-    std::string key;
-    json::read(input, key);
+    std::size_t size = json::stringSize(input);
+    json_string key(size, allocator<char>(m_pool));
+    input.read(key.c_str(), size);
+    input.get();
 
     json::check(input, ":");
 
-    json_value* value = json::createValue(m_pool);
-    value->deserialize(input, m_pool);
-    m_values->insert(std::pair<std::string,json_value*>(key, value));
+    json_value value;
+    value.deserialize(input, m_pool);
+    m_values.push_back(std::move(json_pair(std::move(key), std::move(value))));
   }
   while(json::match(input, ","));
 
@@ -229,19 +226,18 @@ void json_object::serialize(std::stringstream &output)
 {
   output << "{";
 
-  json_map::iterator it = m_values->begin();
-  for(; it != m_values->end();)
+  json_map_node* n = m_values.begin();
+  while(n)
   {
-    output << '"' << it->first << '"';
+    output << '"' << n->data.key.c_str() << '"';
     output << ":";
-    it->second->serialize(output);
+    n->data.value.serialize(output);
 
-    ++it;
-
-    if(it != m_values->end())
+    if(n->next)
     {
       output << ",";
     }
+    n = n->next;
   }
 
   output << "}";
@@ -278,63 +274,48 @@ void json::check(std::stringstream &input, const char* pattern)
   }
 }
 
-void json::read(std::stringstream &input, std::string &str)
+std::size_t json::stringSize(std::stringstream &input)
 {
   json::check(input, "\"");
 
   char c(0);
-  input.get(c);
+  std::size_t backup = input.tellg();
+
+  std::size_t i = backup;
+  c = input.peek();
   while(!input.eof() && (c != '"'))
   {
-    str.push_back(c);
-    input.get(c);
+    i++;
+    input.seekg(i);
+    c = input.peek();
   }
   if(c != '"')
   {
     throw json_exception();
   }
+
+  input.seekg(backup);
+
+  return i - backup;
 }
 
-std::string* json::createString(memory_pool &pool)
+json_string* json::createString(std::size_t length, memory_pool &pool)
 {
-  std::string* p = (std::string*)pool.alloc(json::align<std::string>());
-  :: new (p) std::string();
-  return p;
-}
-
-json_value* json::createValue(memory_pool &pool)
-{
-  json_value* p = (json_value*)pool.alloc(json::align<json_value>());
-  :: new (p) json_value();
-  return p;
-}
-
-json_vector* json::createVector(memory_pool &pool)
-{
-  json_vector* p = (json_vector*)pool.alloc(json::align<json_vector>());
-  :: new (p) json_vector(allocator<json_value*>(pool));
-  return p;
-}
-
-json_map* json::createMap(memory_pool &pool)
-{
-  json_map* p = (json_map*)pool.alloc(json::align<json_map>());
-  :: new (p) json_map(std::initializer_list<alm::json_pair>(),
-                      std::less<std::string>(),
-                      alm::allocator<alm::json_pair>(pool));
+  json_string* p = (json_string*)pool.alloc(alignSize<json_string>(1));
+  :: new (p) json_string(length, allocator<char>(pool));
   return p;
 }
 
 json_array* json::createArray(memory_pool &pool)
 {
-  json_array* p = (json_array*)pool.alloc(json::align<json_array>());
+  json_array* p = (json_array*)pool.alloc(alignSize<json_array>(1));
   :: new (p) json_array(pool);
   return p;
 }
 
 json_object* json::createObject(memory_pool &pool)
 {
-  json_object* p = (json_object*)pool.alloc(json::align<json_object>());
+  json_object* p = (json_object*)pool.alloc(alignSize<json_object>(1));
   :: new (p) json_object(pool);
   return p;
 }

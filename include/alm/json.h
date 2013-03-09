@@ -6,7 +6,9 @@
 #include <sstream>
 #include <exception>
 #include <cassert>
+#include <cstring>
 #include "alm/memory.h"
+#include "alm/containers.h"
 
 namespace alm
 {
@@ -17,11 +19,12 @@ class json_array;
 class json_object;
 class json_value;
 
-typedef std::vector<json_value*, allocator<json_value*>> json_vector;
-typedef std::pair<const std::string, json_value*> json_pair;
-typedef std::map<std::string, json_value*, std::less<std::string>,
-                 allocator<json_pair>> json_map;
-typedef std::basic_string<char, std::char_traits<char>, allocator<char> > json_string;
+typedef list<json_value> json_list;
+typedef list<json_value>::node json_list_node;
+typedef string<allocator<char>> json_string;
+typedef pair<json_string, json_value> json_pair;
+typedef list<json_pair> json_map;
+typedef list<json_pair>::node json_map_node;
 
 class json
 {
@@ -30,27 +33,13 @@ public:
 
   static bool match(std::stringstream &input, const char* pattern);
   
-  static void read(std::stringstream &input, std::string &str);
+  static std::size_t stringSize(std::stringstream &input);
 
-  static std::string* createString(memory_pool &pool);
-
-  static json_value* createValue(memory_pool &pool);
-
-  static json_vector* createVector(memory_pool &pool);
-
-  static json_map* createMap(memory_pool &pool);
+  static json_string* createString(std::size_t length, memory_pool &pool);
 
   static json_array* createArray(memory_pool &pool);
 
   static json_object* createObject(memory_pool &pool);
-
-private:
-  template<typename T>
-  static std::size_t align()
-  {
-    std::size_t alignment = std::alignment_of<T>::value - 1;
-    return ((sizeof(T) + alignment) & ~alignment);
-  }
 };
 
 class json_value
@@ -103,7 +92,7 @@ private:
   {
     bool         m_bool;
     double       m_number;
-    std::string* m_string;
+    json_string* m_string;
     json_array*  m_array;
     json_object* m_object;
   };
@@ -124,50 +113,44 @@ public:
 
   size_t size()
   {
-    assert(m_values != 0);
-
-    return m_values->size();
+    return m_values.size();
   }
 
   template<typename T>
   bool has(unsigned int index)
   {
-    assert(m_values != 0 && m_values->size() > index);
+    assert(m_values.size() > index);
 
-    return m_values->at(index)->is<T>();
+    return m_values.at(index).is<T>();
   }
 
   template<typename T>
   T& get(unsigned int index)
   {
-    assert(m_values != 0 && m_values->size() > index);
+    assert(m_values.size() > index);
 
-    return m_values->at(index)->get<T>();
+    return m_values.at(index).get<T>();
   }
 
   template<typename T>
   void put(T &&value)
   {
-    assert(m_values != 0);
-
-    json_value* v = json::createValue(m_pool);
-    v->put<T>(std::move(value));
-    m_values->push_back(v);
+    json_value v;
+    v.put<T>(std::move(value));
+    m_values.push_back(std::move(v));
   }
 
   void putNull()
   {
-    assert(m_values != 0);
-
-    json_value* v = json::createValue(m_pool);
-    v->putNull(); 
-    m_values->push_back(v);
+    json_value v;
+    v.putNull(); 
+    m_values.push_back(std::move(v));
   }
 
 private:
   memory_pool& m_pool;
 
-  json_vector* m_values;
+  json_list m_values;
 };
 
 class json_object
@@ -185,49 +168,51 @@ public:
 
   size_t size()
   {
-    assert(m_values != 0);
-
-    return m_values->size();
+    return m_values.size();
   }
 
   template<typename T>
   bool has(const char* key)
   {
-    json_map::iterator it(m_values->find(key));
-    return it != m_values->end() && it->second->is<T>();
+    bool result = false;
+    json_map_node* n = m_values.begin();
+    while(n)
+    {
+      if(strcmp(key, n->data.key.c_str()) == 0)
+      {
+        result = true;
+        n = 0;
+      }
+      n = n->next;
+    }
+    return result;
   }
 
   template<typename T>
   T& get(const char* key)
   {
-    assert(m_values != 0);
-
-    return m_values->at(key)->get<T>();
+//    return m_values->at(key)->get<T>();
   }
 
   template<typename T>
   void put(const char* key, T &&value)
   {
-    assert(m_values != 0);
-
-    json_value* v = json::createValue(m_pool);
-    v->put<T>(std::move(value));
-    m_values->insert(std::pair<std::string,json_value*>(key,v));
+    json_value v;
+//    v->put<T>(std::move(value));
+//    m_values->push_back(json_pair(key,v));
   }
 
   void putNull(const char* key)
   {
-    assert(m_values != 0);
-
-    json_value* v = json::createValue(m_pool);
-    v->putNull();
-    m_values->insert(std::pair<std::string,json_value*>(key,v));
+    json_value v;
+    v.putNull();
+//    m_values->push_back(json_pair(key,v));
   }
 
 private:
   memory_pool& m_pool;
 
-  json_map* m_values;
+  json_map m_values;
 };
 
 class json_document
@@ -259,7 +244,7 @@ inline bool json_value::is<bool>()
 }
 
 template<>
-inline bool json_value::is<std::string>()
+inline bool json_value::is<json_string>()
 {
   return m_type == JSON_STRING;
 }
@@ -291,9 +276,9 @@ inline bool& json_value::get<bool>()
 }
 
 template<>
-inline std::string& json_value::get<std::string>()
+inline json_string& json_value::get<json_string>()
 {
-  assert(is<std::string>());
+  assert(is<json_string>());
 
   return *m_string;
 }
@@ -341,12 +326,12 @@ inline void json_value::put<double>(double &&value)
 }
 
 template<>
-inline void json_value::put<std::string>(std::string &&value)
+inline void json_value::put<json_string>(json_string &&value)
 {
   assert(m_type == JSON_UNINIT);
 
   m_type = JSON_STRING;
-  m_string = new std::string(std::move(value));
+//  m_string = new json_string(std::move(value));
 }
 
 template<>
@@ -355,7 +340,7 @@ inline void json_value::put<json_array>(json_array &&value)
   assert(m_type == JSON_UNINIT);
 
   m_type = JSON_ARRAY;
-  m_array = new json_array(std::move(value));
+//  m_array = new json_array(std::move(value));
 }
 
 template<>
@@ -364,7 +349,7 @@ inline void json_value::put<json_object>(json_object &&value)
   assert(m_type == JSON_UNINIT);
 
   m_type = JSON_OBJECT;
-  m_object = new json_object(std::move(value));
+//  m_object = new json_object(std::move(value));
 }
 
 }

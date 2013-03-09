@@ -36,6 +36,9 @@ void test_huge()
 
   std::cout << "end serialization" << std::endl;
 
+  ss.seekp(0, std::ios::end);
+  std::stringstream::pos_type offset = ss.tellp();
+  std::cout << offset << std::endl;
 }
 
 void test_put()
@@ -45,18 +48,18 @@ void test_put()
   alm::json_document doc;
 
   alm::json_object& obj = doc.root();
-  obj.put<std::string>("name","pepe");
-  obj.putNull("c1");
+//  obj.put<std::string>("name","pepe");
+//  obj.putNull("c1");
 
   alm::json_array a(doc.pool());
-  a.put<double>(1);
-  a.putNull();
-  obj.put<alm::json_array>("lista",std::move(a));
+//  a.put<double>(1);
+//  a.putNull();
+//  obj.put<alm::json_array>("lista",std::move(a));
 
   doc.serialize(ss);
   std::cout << ss.str() << std::endl;
 }
-/*
+
 void test()
 {
   std::stringstream s;
@@ -71,9 +74,12 @@ void test()
     <<            "  \"data2\": [\"abcd\", 42, 54.7]"
     <<            "}";
 
-  alm::json_object obj;
-  obj.deserialize(s);
 
+  alm::json_document doc;
+  doc.deserialize(s);
+
+
+/*
   std::cout << obj.get<double>("foo") << std::endl;
   std::cout << obj.get<bool>("bar") << std::endl;
   std::cout << obj.get<alm::json_object>("person").get<std::string>("name") << std::endl;
@@ -84,7 +90,10 @@ void test()
   obj.serialize(ss);
 
   std::cout << ss.str() << std::endl;
+*/
 }
+
+/*
 void test_pool()
 {
   alm::memory_pool pool(10240000); 
@@ -103,6 +112,7 @@ void test_pool()
 
 }
 */
+
 void test_memory()
 {
   alm::memory_pool pool;
