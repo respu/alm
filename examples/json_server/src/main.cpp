@@ -80,15 +80,14 @@ void test()
 
   alm::json_document doc;
   doc.deserialize(s);
+  alm::json_object& obj = doc.root();
 
-
-/*
   std::cout << obj.get<double>("foo") << std::endl;
   std::cout << obj.get<bool>("bar") << std::endl;
-  std::cout << obj.get<alm::json_object>("person").get<std::string>("name") << std::endl;
-  std::cout << obj.get<alm::json_array>("data").get<std::string>(0) << std::endl;
+  std::cout << obj.get<alm::json_object>("person").get<alm::json_string>("name").c_str() << std::endl;
+  std::cout << obj.get<alm::json_array>("data").get<alm::json_string>(0).c_str() << std::endl;
 
-*/
+
   std::stringstream ss;
   doc.serialize(ss);
 
@@ -131,7 +130,7 @@ void test_memory()
 
 int main()
 {
-  test_put();
+  test();
 
   return 0;
 }

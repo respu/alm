@@ -76,8 +76,55 @@ $(BIN): $(OBJS)
 $(OBJDIR)/%.o: $(SRCDIR)/%.$(EXT) 
 	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
 
+build.all:	all		\
+		build.test	\
+		build.examples
+
+build.test:
+	cd test;		\
+	make;	
+
+
+build.examples:
+	cd examples/canvas_server;		\
+	make;
+	cd examples/http_server;		\
+	make;
+	cd examples/http_server;		\
+	make;
+	cd examples/tasks_processor/client;	\
+	make;
+	cd examples/tasks_processor/server;	\
+	make;
+	cd examples/websocket_server;		\
+	make;
+
 clean:
 	$(RM) $(OBJDIR)/*.o *~ $(BIN)
+
+
+clean.all:	clean		\
+		clean.test	\
+		clean.examples
+
+clean.test:
+	cd test;		\
+	make clean;
+
+clean.examples:
+	cd examples/canvas_server;		\
+	make clean;
+	cd examples/http_server;		\
+	make clean;
+	cd examples/http_server;		\
+	make clean;
+	cd examples/tasks_processor/client;	\
+	make clean;
+	cd examples/tasks_processor/server;	\
+	make clean;
+	cd examples/websocket_server;		\
+	make clean;
+
 
 depend: $(SOURCES)
 	makedepend $(INCLUDES) $^

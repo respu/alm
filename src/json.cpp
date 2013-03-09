@@ -329,6 +329,11 @@ json_document::json_document()
 {
 }
 
+json_document::json_document(std::size_t size)
+  : m_pool(size), m_root(m_pool)
+{
+}
+
 json_document::~json_document()
 {
 }

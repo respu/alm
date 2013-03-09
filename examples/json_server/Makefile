@@ -5,6 +5,12 @@
 # 'make clean'  removes all .o and executable files
 #
 
+
+# Set Environment variables
+export ALM_PATH=/home/alem/Workspace/alm
+export LD_LIBRARY_PATH=$(ALM_PATH)/lib
+
+
 # define the C compiler to use
 CC = g++
 
@@ -55,7 +61,7 @@ BIN = $(BINDIR)/json_server
 
 .PHONY: depend clean
 
-all:    $(BIN)
+all:	$(BIN)
 
 $(BIN): $(OBJS) 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(BIN) $(OBJS) $(LFLAGS) $(LIBS)

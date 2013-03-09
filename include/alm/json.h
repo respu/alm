@@ -240,6 +240,8 @@ class json_document
 public:
   json_document();
 
+  json_document(std::size_t size);
+
   ~json_document();
 
   void deserialize(std::stringstream &input);
@@ -251,7 +253,6 @@ public:
   json_object& root();
 
 private:
-// TODO: create pool on deserialize according to input size
   memory_pool m_pool;
 
   json_object m_root;

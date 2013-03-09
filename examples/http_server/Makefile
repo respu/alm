@@ -5,6 +5,13 @@
 # 'make clean'  removes all .o and executable files
 #
 
+
+# Set Environment variables
+export ALM_PATH=/home/alem/Workspace/alm
+export LD_LIBRARY_PATH=$(ALM_PATH)/lib
+
+
+
 # define the C compiler to use
 CC = g++
 

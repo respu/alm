@@ -5,8 +5,6 @@
 #include <exception>
 #include "alm/memory.h"
 
-//TODO: move here queue and safe_queue
-
 namespace alm
 {
 
