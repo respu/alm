@@ -85,12 +85,11 @@ void test()
   std::cout << obj.get<alm::json_object>("person").get<std::string>("name") << std::endl;
   std::cout << obj.get<alm::json_array>("data").get<std::string>(0) << std::endl;
 
-
+*/
   std::stringstream ss;
-  obj.serialize(ss);
+  doc.serialize(ss);
 
   std::cout << ss.str() << std::endl;
-*/
 }
 
 /*

@@ -121,10 +121,9 @@ void json_value::parseNull(std::stringstream &input)
 
 void json_value::parseString(std::stringstream &input, memory_pool &pool)
 {
-  std::size_t size = json::stringSize(input);
-  m_string = json::createString(size, pool);
-  input.read(m_string->c_str(), size);
-  input.get();
+  std::size_t length = json::stringLength(input);
+  m_string = json::createString(length, pool);
+  json::fillString(input, *m_string); 
 }
 
 void json_value::parseArray(std::stringstream &input, memory_pool &pool)
@@ -206,10 +205,9 @@ void json_object::deserialize(std::stringstream &input)
 
   do
   {
-    std::size_t size = json::stringSize(input);
-    json_string key(size, allocator<char>(m_pool));
-    input.read(key.c_str(), size);
-    input.get();
+    std::size_t length = json::stringLength(input);
+    json_string key(length, allocator<char>(m_pool));
+    json::fillString(input, key); 
 
     json::check(input, ":");
 
@@ -274,29 +272,35 @@ void json::check(std::stringstream &input, const char* pattern)
   }
 }
 
-std::size_t json::stringSize(std::stringstream &input)
+std::size_t json::stringLength(std::stringstream &input)
 {
   json::check(input, "\"");
 
   char c(0);
-  std::size_t backup = input.tellg();
+  std::size_t begin = input.tellg();
 
-  std::size_t i = backup;
+  std::size_t index = begin;
   c = input.peek();
   while(!input.eof() && (c != '"'))
   {
-    i++;
-    input.seekg(i);
+    index++;
+    input.seekg(index);
     c = input.peek();
   }
   if(c != '"')
   {
     throw json_exception();
   }
+  input.seekg(begin);
 
-  input.seekg(backup);
+  return index - begin;
+}
 
-  return i - backup;
+void json::fillString(std::stringstream &input, json_string &s)
+{
+  input.read(s.c_str(), s.length());
+  // Advance the stream index to cover the last quote (") of the string
+  input.get();
 }
 
 json_string* json::createString(std::size_t length, memory_pool &pool)

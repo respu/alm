@@ -17,35 +17,57 @@ class string
 {
 public:
   string(std::size_t length)
+    : m_data(0), m_length(length)
   {
-    m_data = (char*)m_allocator.allocate(length);
+    reserve(m_length);
   }
 
-  string(std::size_t length, Allocator &&allocator)
-    : m_allocator(allocator)
+  string(std::size_t length, const Allocator &&allocator)
+    : m_data(0), m_length(length), m_allocator(allocator)
   {
-    m_data = (char*)m_allocator.allocate(length);
+    reserve(m_length);
   }
 
   string(string &&other)
-    : m_allocator(other.m_allocator), m_data(other.m_data)
+    : m_data(other.m_data), m_length(other.m_length),
+      m_allocator(other.m_allocator)
   {
     other.m_data = 0;
+    other.m_length = 0;
   }
 
   ~string()
   {
-    m_allocator.deallocate(m_data, 1);
+    if(m_data != 0)
+    {
+      m_allocator.deallocate(m_data, m_length + 1);
+    }
   }
 
   char* c_str()
   {
     return m_data;
   }
+
+  std::size_t length()
+  {
+    return m_length;
+  }
+
 private:
+  char* m_data;
+
+  std::size_t m_length;
+
   Allocator m_allocator;
 
-  char* m_data;
+  void reserve(std::size_t length)
+  {
+    m_length = length; 
+    m_data = (char*)m_allocator.allocate(m_length + 1);
+    *(m_data + m_length) = '\0';
+  }
+
 };
 
 template<typename K, typename V>
@@ -81,15 +103,15 @@ public:
   };
 
   list(memory_pool &pool)
-    : m_pool(pool), m_head(0), m_tail(0)
+    : m_pool(pool), m_head(0), m_root(0)
   {
   }
 
   list(list &&other)
-    : m_pool(other.m_pool), m_head(other.m_head), m_tail(other.m_tail)
+    : m_pool(other.m_pool), m_head(other.m_head), m_root(other.m_root)
   {
     other.m_head = 0;
-    other.m_tail = 0;
+    other.m_root = 0;
   }
 
 //TODO: use rvalue reference
@@ -99,9 +121,9 @@ public:
     ::new (&(new_node->data)) T(std::move(value));
     new_node->next = 0;
 
-    if(m_tail == 0)
+    if(m_root == 0)
     {
-      m_tail = new_node;
+      m_root = new_node;
       m_head = new_node;
     }
     else
@@ -113,7 +135,7 @@ public:
 
   T& at(std::size_t pos)
   {
-    node* n = m_tail;
+    node* n = m_root;
     std::size_t index = 0;
     while(n)
     {
@@ -129,7 +151,7 @@ public:
 
   std::size_t size()
   {
-    node* n = m_tail;
+    node* n = m_root;
     std::size_t index = 0;
     while(n)
     {
@@ -141,12 +163,7 @@ public:
 
   node* begin()
   {
-    return m_head;
-  }
-
-  node* end()
-  {
-    return m_tail;
+    return m_root;
   }
 
 private:
@@ -154,7 +171,7 @@ private:
 
   node* m_head;
 
-  node* m_tail;
+  node* m_root;
 };
 
 }

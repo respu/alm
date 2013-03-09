@@ -80,6 +80,7 @@ private:
   static const std::size_t DEFAULT_CHUNK_CAPACITY = 1024 * 100; // 100KB
 };
 
+//TODO: rename as acc_allocator
 template<typename T>
 class allocator
 {
@@ -209,7 +210,7 @@ inline bool operator !=(const allocator<T> &,
   return (true);
 }
 
-// TODO: add fixed_allocator as object_pool with stack storage
+// TODO: add fixed_allocator as stack_allocator and stack_block_allocator
 
 }
 

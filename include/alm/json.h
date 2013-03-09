@@ -33,7 +33,9 @@ public:
 
   static bool match(std::stringstream &input, const char* pattern);
   
-  static std::size_t stringSize(std::stringstream &input);
+  static std::size_t stringLength(std::stringstream &input);
+
+  static void fillString(std::stringstream &input, json_string &s);
 
   static json_string* createString(std::size_t length, memory_pool &pool);
 
