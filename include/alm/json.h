@@ -14,6 +14,7 @@ namespace alm
 {
 
 struct json_exception : public std::exception {};
+struct json_object_map_exception : public std::exception {};
 
 class json_array;
 class json_object;
@@ -64,7 +65,7 @@ public:
   bool is();
 
   template<typename T>
-  void put(T&& value);
+  void put(T&& value, memory_pool &pool);
 
   void putNull();
 
@@ -140,7 +141,7 @@ public:
   void put(T &&value)
   {
     json_value v;
-    v.put<T>(std::move(value));
+    v.put<T>(std::move(value), m_pool);
     m_values.push_back(std::move(v));
   }
 
@@ -195,22 +196,37 @@ public:
   template<typename T>
   T& get(const char* key)
   {
-//    return m_values->at(key)->get<T>();
+    json_map_node* n = m_values.begin();
+    while(n)
+    {
+      if(strcmp(key, n->data.key.c_str()) == 0)
+      {
+        return n->data.value.get<T>();
+      }
+      n = n->next;
+    }
+    throw json_object_map_exception();
   }
 
   template<typename T>
   void put(const char* key, T &&value)
   {
+    json_string key_string(strlen(key), allocator<char>(m_pool));
+    strcpy(key_string.c_str(), key); 
+
     json_value v;
-//    v->put<T>(std::move(value));
-//    m_values->push_back(json_pair(key,v));
+    v.put<T>(std::move(value), m_pool);
+    m_values.push_back(std::move(json_pair(std::move(key_string), std::move(v))));
   }
 
   void putNull(const char* key)
   {
+    json_string key_string(strlen(key), allocator<char>(m_pool));
+    strcpy(key_string.c_str(), key); 
+
     json_value v;
     v.putNull();
-//    m_values->push_back(json_pair(key,v));
+    m_values.push_back(std::move(json_pair(std::move(key_string), std::move(v))));
   }
 
 private:
@@ -312,7 +328,7 @@ inline json_object& json_value::get<json_object>()
 }
 
 template<>
-inline void json_value::put<bool>(bool &&value)
+inline void json_value::put<bool>(bool &&value, memory_pool &pool)
 {
   assert(m_type == JSON_UNINIT);
 
@@ -321,7 +337,7 @@ inline void json_value::put<bool>(bool &&value)
 }
 
 template<>
-inline void json_value::put<double>(double &&value)
+inline void json_value::put<double>(double &&value, memory_pool &pool)
 {
   assert(m_type == JSON_UNINIT);
 
@@ -330,30 +346,33 @@ inline void json_value::put<double>(double &&value)
 }
 
 template<>
-inline void json_value::put<json_string>(json_string &&value)
+inline void json_value::put<json_string>(json_string &&value, memory_pool &pool)
 {
   assert(m_type == JSON_UNINIT);
 
   m_type = JSON_STRING;
-//  m_string = new json_string(std::move(value));
+  m_string = (json_string*)pool.alloc(alignSize<json_string>(1));
+  :: new (m_string) json_string(std::move(value));
 }
 
 template<>
-inline void json_value::put<json_array>(json_array &&value)
+inline void json_value::put<json_array>(json_array &&value, memory_pool &pool)
 {
   assert(m_type == JSON_UNINIT);
 
   m_type = JSON_ARRAY;
-//  m_array = new json_array(std::move(value));
+  m_array = (json_array*)pool.alloc(alignSize<json_array>(1));
+  :: new (m_array) json_array(std::move(value));
 }
 
 template<>
-inline void json_value::put<json_object>(json_object &&value)
+inline void json_value::put<json_object>(json_object &&value, memory_pool &pool)
 {
   assert(m_type == JSON_UNINIT);
 
   m_type = JSON_OBJECT;
-//  m_object = new json_object(std::move(value));
+  m_object = (json_object*)pool.alloc(alignSize<json_object>(1));
+  :: new (m_object) json_object(std::move(value));
 }
 
 }

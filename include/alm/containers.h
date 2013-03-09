@@ -1,6 +1,7 @@
 #ifndef __ALM__CONTAINERS__
 #define __ALM__CONTAINERS__
 
+#include <cstring>
 #include <exception>
 #include "alm/memory.h"
 
@@ -21,10 +22,26 @@ public:
     reserve(m_length);
   }
 
+  string(const char* value)
+    : m_data(0), m_length(0)
+  {
+    reserve(strlen(value));
+
+    strcpy(m_data, value);
+  }
+
   string(std::size_t length, Allocator &&allocator)
     : m_data(0), m_length(length), m_allocator(allocator)
   {
     reserve(m_length);
+  }
+
+  string(const char* value, Allocator &&allocator)
+    : m_data(0), m_length(0), m_allocator(allocator)
+  {
+    reserve(strlen(value));
+
+    strcpy(m_data, value);
   }
 
   string(string &&other)
@@ -124,6 +141,19 @@ public:
     other.m_root = 0;
   }
 
+  ~list()
+  {
+    node<T>* n = m_root;
+    while(n)
+    {
+      node<T>* tmp = n;
+      n = n->next;
+
+      m_allocator.destroy(tmp);
+      m_allocator.deallocate(tmp, 1);
+    }    
+  }
+
   void push_back(T &&value)
   {
     node<T>* new_node = m_allocator.allocate(1); 
@@ -140,6 +170,8 @@ public:
       m_head = new_node;
     }
   }
+
+//TODO: implement erase
 
   T& at(std::size_t pos)
   {

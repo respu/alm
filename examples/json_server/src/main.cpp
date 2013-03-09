@@ -48,13 +48,16 @@ void test_put()
   alm::json_document doc;
 
   alm::json_object& obj = doc.root();
-//  obj.put<std::string>("name","pepe");
-//  obj.putNull("c1");
+  
+  alm::json_string pepe("pepe", alm::allocator<char>(doc.pool()));
+
+  obj.put<alm::json_string>("name", std::move(pepe));
+  obj.putNull("c1");
 
   alm::json_array a(doc.pool());
-//  a.put<double>(1);
-//  a.putNull();
-//  obj.put<alm::json_array>("lista",std::move(a));
+  a.put<double>(1.0);
+  a.putNull();
+  obj.put<alm::json_array>("lista",std::move(a));
 
   doc.serialize(ss);
   std::cout << ss.str() << std::endl;
@@ -128,7 +131,7 @@ void test_memory()
 
 int main()
 {
-  test_huge();
+  test_put();
 
   return 0;
 }
