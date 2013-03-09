@@ -1,7 +1,6 @@
 #ifndef __ALM__CONTAINERS__
 #define __ALM__CONTAINERS__
 
-#include <stdexcept>
 #include <exception>
 #include "alm/memory.h"
 
@@ -22,7 +21,7 @@ public:
     reserve(m_length);
   }
 
-  string(std::size_t length, const Allocator &&allocator)
+  string(std::size_t length, Allocator &&allocator)
     : m_data(0), m_length(length), m_allocator(allocator)
   {
     reserve(m_length);
@@ -65,6 +64,8 @@ private:
   {
     m_length = length; 
     m_data = (char*)m_allocator.allocate(m_length + 1);
+    // Add \0 character at the end of the string to make
+    // it printable by std::cout
     *(m_data + m_length) = '\0';
   }
 
@@ -90,36 +91,43 @@ public:
   }
 };
 
-//TODO: use allocator as template parameter as stl does
 template<typename T>
+struct node
+{
+  T data;
+  node* next;
+
+  node(T &&other_data)
+    : data(std::move(other_data)), next(0)
+  {
+  }
+};
+
+template<typename T, typename Allocator = std::allocator<node<T>>>
 class list
 {
 public:
-//TODO: create iterator and keep node private
-  struct node
+  list()
+    : m_head(0), m_root(0)
   {
-    T data;
-    node* next;
-  };
+  }
 
-  list(memory_pool &pool)
-    : m_pool(pool), m_head(0), m_root(0)
+  list(Allocator &&allocator)
+    : m_allocator(allocator), m_head(0), m_root(0)
   {
   }
 
   list(list &&other)
-    : m_pool(other.m_pool), m_head(other.m_head), m_root(other.m_root)
+    : m_allocator(other.m_allocator), m_head(other.m_head), m_root(other.m_root)
   {
     other.m_head = 0;
     other.m_root = 0;
   }
 
-//TODO: use rvalue reference
   void push_back(T &&value)
   {
-    node* new_node = (node*)m_pool.alloc(alignSize<node>(1)); 
-    ::new (&(new_node->data)) T(std::move(value));
-    new_node->next = 0;
+    node<T>* new_node = m_allocator.allocate(1); 
+    m_allocator.construct(new_node, std::move(value));
 
     if(m_root == 0)
     {
@@ -135,7 +143,7 @@ public:
 
   T& at(std::size_t pos)
   {
-    node* n = m_root;
+    node<T>* n = m_root;
     std::size_t index = 0;
     while(n)
     {
@@ -151,7 +159,7 @@ public:
 
   std::size_t size()
   {
-    node* n = m_root;
+    node<T>* n = m_root;
     std::size_t index = 0;
     while(n)
     {
@@ -161,17 +169,17 @@ public:
     return index;
   }
 
-  node* begin()
+  node<T>* begin()
   {
     return m_root;
   }
 
 private:
-  memory_pool& m_pool;
+  Allocator m_allocator;
 
-  node* m_head;
+  node<T>* m_head;
 
-  node* m_root;
+  node<T>* m_root;
 };
 
 }

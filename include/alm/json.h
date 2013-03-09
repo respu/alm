@@ -19,12 +19,14 @@ class json_array;
 class json_object;
 class json_value;
 
-typedef list<json_value> json_list;
-typedef list<json_value>::node json_list_node;
 typedef string<allocator<char>> json_string;
+
+typedef node<json_value> json_list_node;
+typedef list<json_value, allocator<json_list_node>> json_list;
+
 typedef pair<json_string, json_value> json_pair;
-typedef list<json_pair> json_map;
-typedef list<json_pair>::node json_map_node;
+typedef node<json_pair> json_map_node;
+typedef list<json_pair, allocator<json_map_node>> json_map;
 
 class json
 {

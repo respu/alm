@@ -139,7 +139,7 @@ void json_value::parseObject(std::stringstream &input, memory_pool &pool)
 }
 
 json_array::json_array(memory_pool &pool)
-  : m_pool(pool), m_values(pool)
+  : m_pool(pool), m_values(allocator<json_list_node>(pool))
 {
 }
 
@@ -186,7 +186,7 @@ void json_array::serialize(std::stringstream &output)
 }
 
 json_object::json_object(memory_pool &pool)
-  : m_pool(pool), m_values(pool)
+  : m_pool(pool), m_values(allocator<json_map_node>(pool))
 {
 }
 
