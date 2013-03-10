@@ -5,8 +5,10 @@
 #include <exception>
 #include <cassert>
 #include <cstring>
-#include "alm/memory.h"
-#include "alm/containers.h"
+#include "alm/memory_pool.h"
+#include "alm/acc_allocator.h"
+#include "alm/list.h"
+#include "alm/string.h"
 
 namespace alm
 {
@@ -18,14 +20,14 @@ class json_array;
 class json_object;
 class json_value;
 
-typedef string<allocator<char>> json_string;
+typedef string<acc_allocator<char>> json_string;
 
 typedef node<json_value> json_list_node;
-typedef list<json_value, allocator<json_list_node>> json_list;
+typedef list<json_value, acc_allocator<json_list_node>> json_list;
 
 typedef pair<json_string, json_value> json_pair;
 typedef node<json_pair> json_map_node;
-typedef list<json_pair, allocator<json_map_node>> json_map;
+typedef list<json_pair, acc_allocator<json_map_node>> json_map;
 
 class json
 {
@@ -209,7 +211,7 @@ public:
   template<typename T>
   void put(const char* key, T &&value)
   {
-    json_string key_string(strlen(key), allocator<char>(m_pool));
+    json_string key_string(strlen(key), acc_allocator<char>(m_pool));
     strcpy(key_string.c_str(), key); 
 
     json_value v;
@@ -219,7 +221,7 @@ public:
 
   void putNull(const char* key)
   {
-    json_string key_string(strlen(key), allocator<char>(m_pool));
+    json_string key_string(strlen(key), acc_allocator<char>(m_pool));
     strcpy(key_string.c_str(), key); 
 
     json_value v;

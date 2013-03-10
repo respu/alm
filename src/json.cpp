@@ -139,7 +139,7 @@ void json_value::parseObject(std::stringstream &input, memory_pool &pool)
 }
 
 json_array::json_array(memory_pool &pool)
-  : m_pool(pool), m_values(allocator<json_list_node>(pool))
+  : m_pool(pool), m_values(acc_allocator<json_list_node>(pool))
 {
 }
 
@@ -186,7 +186,7 @@ void json_array::serialize(std::stringstream &output)
 }
 
 json_object::json_object(memory_pool &pool)
-  : m_pool(pool), m_values(allocator<json_map_node>(pool))
+  : m_pool(pool), m_values(acc_allocator<json_map_node>(pool))
 {
 }
 
@@ -206,7 +206,7 @@ void json_object::deserialize(std::stringstream &input)
   do
   {
     std::size_t length = json::stringLength(input);
-    json_string key(length, allocator<char>(m_pool));
+    json_string key(length, acc_allocator<char>(m_pool));
     json::fillString(input, key); 
 
     json::check(input, ":");
@@ -299,14 +299,14 @@ std::size_t json::stringLength(std::stringstream &input)
 void json::fillString(std::stringstream &input, json_string &s)
 {
   input.read(s.c_str(), s.length());
-  // Advance the stream index to cover the last quote (") of the string
+  // Move forward the stream index to cover the last quote (") of the string
   input.get();
 }
 
 json_string* json::createString(std::size_t length, memory_pool &pool)
 {
   json_string* p = (json_string*)pool.alloc(alignSize<json_string>(1));
-  :: new (p) json_string(length, allocator<char>(pool));
+  :: new (p) json_string(length, acc_allocator<char>(pool));
   return p;
 }
 

@@ -2,7 +2,7 @@
 #include <sstream>
 #include <fstream>
 #include "alm/json.h"
-#include "alm/memory.h"
+#include "alm/acc_allocator.h"
 
 #include <vector>
 #include "alm/stack_allocator.h"
@@ -52,7 +52,7 @@ void test_put()
 
   alm::json_object& obj = doc.root();
   
-  alm::json_string pepe("pepe", alm::allocator<char>(doc.pool()));
+  alm::json_string pepe("pepe", alm::acc_allocator<char>(doc.pool()));
 
   obj.put<alm::json_string>("name", std::move(pepe));
   obj.putNull("c1");
@@ -120,12 +120,12 @@ void test_pool()
 void test_memory()
 {
   alm::memory_pool pool;
-  alm::allocator<int> alloc(pool);
+  alm::acc_allocator<int> alloc(pool);
 
-  std::vector<int, alm::allocator<int>> v1(alloc);
+  std::vector<int, alm::acc_allocator<int>> v1(alloc);
   v1.push_back(1);
 
-  std::vector<int, alm::allocator<int>> v2(alloc);
+  std::vector<int, alm::acc_allocator<int>> v2(alloc);
   v2.push_back(1);
 
   pool.clear();
@@ -139,7 +139,7 @@ void test_api()
 
 int main()
 {
-  test_api();
+  test_put();
 
   return 0;
 }
