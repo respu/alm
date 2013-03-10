@@ -1,8 +1,6 @@
 #ifndef __ALM__json___
 #define __ALM__json___
 
-#include <vector>
-#include <map>
 #include <sstream>
 #include <exception>
 #include <cassert>

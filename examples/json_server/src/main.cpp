@@ -4,6 +4,9 @@
 #include "alm/json.h"
 #include "alm/memory.h"
 
+#include <vector>
+#include "alm/stack_allocator.h"
+
 void test_huge()
 {
   std::cout << "start read file" << std::endl;
@@ -128,9 +131,15 @@ void test_memory()
   pool.clear();
 }
 
+void test_api()
+{
+  std::vector<int, alm::stack_allocator<int, 100>> v;
+  v.push_back(1);
+}
+
 int main()
 {
-  test();
+  test_api();
 
   return 0;
 }
